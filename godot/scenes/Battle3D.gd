@@ -63,8 +63,8 @@ func _ready() -> void:
 	var cam := Camera3D.new()
 	cam.fov = 52
 	add_child(cam)
-	cam.position = Vector3(-6.5, 8.8, 8.8)
-	cam.look_at(Vector3(0.4, 0.4, -2.4), Vector3.UP)
+	cam.position = Vector3(6.5, 8.8, 8.8)
+	cam.look_at(Vector3(-0.4, 0.4, -2.4), Vector3.UP)
 
 func _disc(pos: Vector3, radius: float, col: Color) -> void:
 	var mi := MeshInstance3D.new()
