@@ -23,7 +23,7 @@ func _initialize() -> void:
 	ok(db.type_mult("Ember", ["Nature"]) == 2.0, "Ember vs Nature = 2.0 (dari data)")
 	ok(db.type_mult("Nature", ["Ember"]) == 0.5, "Nature vs Ember = 0.5")
 	ok(db.type_mult("Normal", ["Nature"]) == 1.0, "Basic/Normal selalu 1.0")
-	ok(db.species.size() == 9, "9 Crypture ter-index")
+	ok(db.species.size() == 10, "10 Crypture ter-index")
 	var cap: Dictionary = db.make_instance("010", 7, true)
 	ok(cap["max_hp"] > 0 and cap["moves"].size() == 2, "instance Cappin: max_hp & 2 move")
 	var cap_tame: Dictionary = db.make_instance("010", 7, false)

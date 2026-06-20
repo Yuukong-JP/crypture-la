@@ -28,7 +28,7 @@ ok(DB.TYPES.length === 10, "10 tipe inti dimuat");
 ok(DB.typeMult("Ember", ["Nature"]) === 2.0, "Ember vs Nature = 2.0 (dari data)");
 ok(DB.typeMult("Nature", ["Ember"]) === 0.5, "Nature vs Ember = 0.5");
 ok(DB.typeMult("Normal", ["Nature"]) === 1.0, "Basic/Normal selalu 1.0");
-ok(Object.keys(DB.SPECIES).length === 9, "9 Crypture ter-index");
+ok(Object.keys(DB.SPECIES).length === 10, "10 Crypture ter-index");
 const cap = DB.makeInstance("010", 7, true);
 ok(cap.maxHp > 0 && cap.moves.length === 2, "instance Cappin: maxHp & 2 move (basic+natural)");
 const capTame = DB.makeInstance("010", 7, false);

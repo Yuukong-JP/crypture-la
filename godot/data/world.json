@@ -29,7 +29,8 @@
       { "cid": "011", "x": 11, "y": 2, "level": 7, "behavior": "wander" },
       { "cid": "012", "x": 13, "y": 7, "level": 8, "behavior": "still" },
       { "cid": "013", "x": 8,  "y": 8, "level": 7, "behavior": "flee" },
-      { "cid": "014", "x": 3,  "y": 6, "level": 9, "behavior": "wander" }
+      { "cid": "014", "x": 3,  "y": 6, "level": 9, "behavior": "wander" },
+      { "cid": "015", "x": 12, "y": 3, "level": 10, "behavior": "still" }
     ],
     "lore_points": [
       { "id": "lp_tua",  "x": 5,  "y": 2, "name": "Pohon Tua", "for": "010", "source_type": "habitat", "text": "Cappin merumput tenang di bawah pohon ini." },

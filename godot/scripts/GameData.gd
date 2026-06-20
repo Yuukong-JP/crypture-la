@@ -34,6 +34,26 @@ func sprite_for(cid: String) -> Texture2D:
 	_sprite_cache[cid] = tex
 	return tex
 
+# Back-sprite (untuk party di battle, tampak punggung). Fallback ke front bila tak ada.
+func sprite_back_for(cid: String) -> Texture2D:
+	var key := cid + "_back"
+	if _sprite_cache.has(key):
+		return _sprite_cache[key]
+	var sp: Dictionary = species[cid]
+	var path := ""
+	var sps: Variant = sp.get("sprite_paths", {})
+	if typeof(sps) == TYPE_DICTIONARY and String(sps.get("back", "")) != "":
+		path = String(sps["back"])
+	if path == "":
+		path = "res://assets/crypture/%s_back.png" % String(sp["name"]).to_lower()
+	var tex: Texture2D = null
+	if ResourceLoader.exists(path):
+		tex = load(path)
+	if tex == null:
+		tex = sprite_for(cid)  # fallback ke front
+	_sprite_cache[key] = tex
+	return tex
+
 func _read_json(path: String) -> Variant:
 	var f := FileAccess.open(path, FileAccess.READ)
 	assert(f != null, "Tak bisa buka %s" % path)

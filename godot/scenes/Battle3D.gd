@@ -45,16 +45,16 @@ func _ready() -> void:
 	ground.position.y = -0.02
 	add_child(ground)
 
-	# --- Lawan (seberang, lebih besar) ---
-	var enemy_cid := "010"  # Cappin liar
-	_unit(Core.db.sprite_for(enemy_cid), Vector3(0, 0, -6.5), 2.9, Core.db.species[enemy_cid]["name"] + " Lv7", Color("#eadfa0"))
+	# --- Lawan (seberang, lebih besar) — Mosswhim, front-sprite ---
+	var enemy_cid := "015"  # Mosswhim (Rare)
+	_unit(Core.db.sprite_for(enemy_cid), Vector3(0, 0, -6.5), 3.0, Core.db.species[enemy_cid]["name"] + " Lv10", Color("#eadfa0"))
 
-	# --- 3 Crypture pemain (jajar depan, menghadap lawan) ---
+	# --- 3 Crypture pemain (jajar depan, BACK-sprite karena tampak punggung) ---
 	var party := ["001", "003", "005"]  # Verduck, Pyruff, Ripplet
 	var xs := [-2.4, 0.0, 2.4]
 	for i in range(3):
 		var sp: Dictionary = Core.db.species[party[i]]
-		_unit(Core.db.sprite_for(party[i]), Vector3(xs[i], 0, 2.6), 1.8, sp["name"], Color("#dff0d6"))
+		_unit(Core.db.sprite_back_for(party[i]), Vector3(xs[i], 0, 2.6), 1.9, sp["name"], Color("#dff0d6"))
 
 	# --- Seeker di belakang tim ---
 	_unit(load("res://assets/world/seeker.png"), Vector3(0, 0, 5.0), 2.1, "Seeker", Color("#cfe0ff"))
