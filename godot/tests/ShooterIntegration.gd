@@ -5,8 +5,9 @@ func _ready() -> void:
 	add_child(main)
 	for i in range(6): await get_tree().process_frame
 	main.show_zone()
-	for i in range(3): await get_tree().process_frame
-	var spawn = main.zone_view.creatures[0]
+	for i in range(4): await get_tree().process_frame
+	var c = main._explore.creatures[0]
+	var spawn = {"sid": c["sid"], "cid": c["cid"], "level": c["level"]}
 	print("encounter: ", spawn["cid"])
 	main._on_encounter(spawn)
 	for i in range(8): await get_tree().process_frame

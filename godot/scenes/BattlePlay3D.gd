@@ -53,6 +53,7 @@ func _setup_cam(enemy_h: float) -> void:
 	var dir := Vector3(sin(yr) * cos(pr), sin(pr), cos(yr) * cos(pr))
 	cam.position = target + dir * dist
 	cam.look_at(target, Vector3.UP)
+	cam.make_current()
 
 # ---------- panggung 3D ----------
 func _build_stage() -> void:

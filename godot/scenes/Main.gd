@@ -2,7 +2,8 @@
 # Loop: intro -> hub -> zona -> battle -> report. Memakai autoload Core (db/codex/state).
 extends Control
 
-const ZoneViewScene := preload("res://scenes/ZoneView.gd")
+const ExploreZone3DScene := preload("res://scenes/ExploreZone3D.tscn")
+const BattlePlay3DScene := preload("res://scenes/BattlePlay3D.tscn")
 
 var top_rank: Label
 var top_gp: Label
@@ -10,12 +11,13 @@ var top_loc: Label
 var body: MarginContainer
 
 var battle            # Battle aktif
-var zone_view         # ZoneView aktif (di-detach dari tree saat battle agar tak ter-free)
-var zone_msg: Label   # label status zona (di-update saat lore terkumpul)
 var current_spawn     # spawn yang sedang ditempur
-var _bg: ColorRect    # latar UI (disembunyikan saat battle 3D)
+var _bg: ColorRect    # latar UI (disembunyikan saat scene 3D)
 var _rootui: VBoxContainer
 var _battle3d         # scene BattlePlay3D aktif
+var _explore          # scene ExploreZone3D aktif
+var _explore_state := {}  # posisi pemain + musuh terkalahkan + lore terpakai (lintas battle)
+var _fighting_sid := -1   # sid creature yg sedang ditempur
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -338,60 +340,54 @@ func show_codex() -> void:
 # ---------- ZONA ----------
 func show_zone() -> void:
 	_set_loc("Hutan Luar Verdwall")
-	var v := _screen()
-	v.add_child(_label("Hutan Luar Verdwall", 20, Color("#eef3e9")))
-	zone_msg = _label("WASD / panah untuk bergerak. Dekati Crypture untuk encounter. EXIT = pulang.", 12, Color("#a7c0ad"))
-	v.add_child(zone_msg)
-	zone_view = ZoneViewScene.new()
-	zone_view.setup(Core.db)
-	zone_view.encounter.connect(_on_encounter)
-	zone_view.reached_exit.connect(func(): _end_expedition("Kamu kembali ke Hub melalui jalur keluar.", []))
-	zone_view.lore_collected.connect(_on_lore)
-	v.add_child(zone_view)
-	v.add_child(_button("↩ Paksa pulang ke Hub", func(): _end_expedition("Kamu memilih pulang.", [])))
-	v.add_child(_label("Crypture liar lebih kuat dari versi ter-Bond (wild_multiplier).", 11, Color("#7d917f")))
-	_set_body(v)
-	if zone_view.is_inside_tree():
-		zone_view.grab_focus()
-
-func _on_lore(t: String) -> void:
-	if is_instance_valid(zone_msg):
-		zone_msg.text = t
-
-func _dispose_zone() -> void:
-	if zone_view != null and is_instance_valid(zone_view):
-		if zone_view.get_parent() != null:
-			zone_view.get_parent().remove_child(zone_view)
-		zone_view.queue_free()
-	zone_view = null
-
-const BattlePlay3DScene := preload("res://scenes/BattlePlay3D.tscn")
-
-func _on_encounter(spawn) -> void:
-	# lepas zona dari tree agar tak ikut ter-free
-	if zone_view != null and is_instance_valid(zone_view) and zone_view.get_parent() != null:
-		zone_view.get_parent().remove_child(zone_view)
-	current_spawn = spawn
-	Core.codex.add_from_source(spawn["cid"], "encounter")
-	# luncurkan battle 3D (HD-2D), sembunyikan UI 2D di belakangnya
-	_battle3d = BattlePlay3DScene.instantiate()
-	_battle3d.enemy_cid = String(spawn["cid"])
-	_battle3d.enemy_lv = int(spawn["level"])
-	_battle3d.battle_finished.connect(_on_battle3d_done)
 	_show_ui(false)
-	add_child(_battle3d)
+	_spawn_explore()
+
+func _spawn_explore() -> void:
+	_explore = ExploreZone3DScene.instantiate()
+	_explore.encounter.connect(_on_encounter)
+	_explore.reached_exit.connect(func(): _end_expedition("Kamu kembali ke Hub melalui jalur keluar.", []))
+	_explore.go_hub.connect(func(): _end_expedition("Kamu memilih pulang.", []))
+	add_child(_explore)
+	if not _explore_state.is_empty():
+		_explore.apply_state(_explore_state)
+
+func _dispose_explore() -> void:
+	if _explore != null and is_instance_valid(_explore):
+		_explore.queue_free()
+	_explore = null
 
 func _show_ui(show: bool) -> void:
 	if _bg != null: _bg.visible = show
 	if _rootui != null: _rootui.visible = show
+
+func _on_encounter(spawn) -> void:
+	current_spawn = spawn
+	_fighting_sid = int(spawn["sid"])
+	# simpan posisi & progres eksplorasi, lalu lepas scene jelajah
+	if _explore != null and is_instance_valid(_explore):
+		_explore_state = _explore.get_state()
+	_dispose_explore()
+	Core.codex.add_from_source(spawn["cid"], "encounter")
+	# luncurkan battle 3D (UI 2D tetap tersembunyi)
+	_battle3d = BattlePlay3DScene.instantiate()
+	_battle3d.enemy_cid = String(spawn["cid"])
+	_battle3d.enemy_lv = int(spawn["level"])
+	_battle3d.battle_finished.connect(_on_battle3d_done)
+	add_child(_battle3d)
 
 func _on_battle3d_done(b) -> void:
 	battle = b
 	if _battle3d != null and is_instance_valid(_battle3d):
 		_battle3d.queue_free()
 	_battle3d = null
+	# tandai musuh terkalahkan agar tak muncul lagi saat kembali menjelajah
+	if (b.result == "win" or b.result == "bond") and _fighting_sid >= 0:
+		var d: Array = _explore_state.get("defeated", [])
+		if not d.has(_fighting_sid): d.append(_fighting_sid)
+		_explore_state["defeated"] = d
 	_show_ui(true)
-	_resolve_battle()   # pakai ulang alur hasil battle (GP, misi, Bond, kembali ke zona/hub)
+	_resolve_battle()   # alur hasil battle (GP, misi, Bond, kembali ke zona/hub)
 
 # ---------- BATTLE ----------
 func _render_battle() -> void:
@@ -485,8 +481,7 @@ func _do_flee() -> void:
 
 func _resolve_battle() -> void:
 	var events = Core.state.on_battle_result(battle)
-	if current_spawn != null and (battle.result == "win" or battle.result == "bond") and zone_view != null:
-		zone_view.mark_defeated(current_spawn)
+	# (musuh terkalahkan sudah ditandai di _explore_state oleh _on_battle3d_done)
 	var res = battle.result
 	if res == "lose":
 		_end_expedition("Tim tumbang — kamu dipulihkan di Hub.", events)
@@ -513,22 +508,14 @@ func _resolve_battle() -> void:
 	_set_body(v)
 
 func _back_to_zone() -> void:
+	# kembali menjelajah: bangun ulang dunia 3D dari state (posisi & musuh terkalahkan terjaga)
 	_set_loc("Hutan Luar Verdwall")
-	var v := _screen()
-	v.add_child(_label("Hutan Luar Verdwall", 20, Color("#eef3e9")))
-	zone_msg = _label("Lanjut menjelajah. EXIT = pulang.", 12, Color("#a7c0ad"))
-	v.add_child(zone_msg)
-	# pakai zone_view yang sama (state terjaga); sudah di-detach saat encounter
-	if zone_view.get_parent() != null:
-		zone_view.get_parent().remove_child(zone_view)
-	v.add_child(zone_view)
-	v.add_child(_button("↩ Paksa pulang ke Hub", func(): _end_expedition("Kamu memilih pulang.", [])))
-	_set_body(v)
-	if zone_view.is_inside_tree():
-		zone_view.grab_focus()
+	_show_ui(false)
+	_spawn_explore()
 
 func _apex_victory(events: Array) -> void:
-	_dispose_zone()
+	_dispose_explore()
+	_explore_state = {}; _fighting_sid = -1
 	current_spawn = null
 	_set_loc("Jantung Verdwall")
 	var v := _screen()
@@ -541,7 +528,8 @@ func _apex_victory(events: Array) -> void:
 	_set_body(v)
 
 func _end_expedition(note: String, events: Array) -> void:
-	_dispose_zone()
+	_dispose_explore()
+	_explore_state = {}; _fighting_sid = -1
 	current_spawn = null
 	for p in Core.state.party:
 		p["hp"] = p["max_hp"]
