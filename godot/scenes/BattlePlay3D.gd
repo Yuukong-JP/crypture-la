@@ -7,8 +7,11 @@ extends Node3D
 const PARTY_X := [-3.1, -1.1, 0.9]
 const ENEMY_BASE_H := 2.6   # tinggi acuan lawan (display_scale 1.0)
 const PARTY_BASE_H := 1.9
-@export var enemy_cid: String = "015"  # Mosswhim (bisa di-override utk demo)
+@export var enemy_cid: String = "015"  # Mosswhim (bisa di-override saat dipanggil)
 @export var enemy_lv: int = 10
+@export var fresh_party: bool = false  # true hanya utk demo berdiri sendiri (pulihkan HP di awal)
+
+signal battle_finished(b)              # dipancarkan saat pemain menekan "Lanjut" di akhir battle
 
 var battle
 var cam: Camera3D
@@ -25,10 +28,12 @@ func _scale_of(cid: String) -> float:
 func _ready() -> void:
 	_build_stage()
 	var party: Array = Core.state.party
-	for p in party:                      # pulihkan utk demo
-		p["hp"] = p["max_hp"]; p["status"] = ""; p["enraged"] = false; p["taunt"] = 0
-		p["stat_stages"] = {"atk": 0, "def": 0, "sp_atk": 0, "sp_def": 0, "speed": 0}
-	var enemy: Dictionary = Core.db.make_instance(enemy_cid, enemy_lv, true)
+	if fresh_party:                      # demo berdiri sendiri: pulihkan HP
+		for p in party:
+			p["hp"] = p["max_hp"]; p["status"] = ""; p["enraged"] = false; p["taunt"] = 0
+			p["stat_stages"] = {"atk": 0, "def": 0, "sp_atk": 0, "sp_def": 0, "speed": 0}
+	var is_apex := not bool(Core.db.species[enemy_cid].get("bondable", true))
+	var enemy: Dictionary = Core.db.make_instance(enemy_cid, enemy_lv, not is_apex)
 	# tinggi tampil per-Crypture (data-driven). Lawan boleh besar; party dibatasi agar barisan rapi.
 	var enemy_h := ENEMY_BASE_H * _scale_of(enemy_cid)
 	_spawn(Core.db.sprite_for(enemy_cid), Vector3(0, 0, -6.5), enemy_h, enemy["uid"])
@@ -232,7 +237,7 @@ func _build_cmd() -> void:
 		var res: String = battle.result
 		var title := "✨ Bond!" if res == "bond" else ("🏆 Menang!" if res == "win" else ("🏃 Lolos" if res == "flee" else "💤 Kalah"))
 		ui_cmd.add_child(_lbl(title, 18, Color("#e7c659")))
-		ui_cmd.add_child(_btn("Main lagi", func(): get_tree().reload_current_scene()))
+		ui_cmd.add_child(_btn("Lanjut →", _finish))
 		return
 	var u = battle.pending
 	if u == null:
@@ -253,6 +258,13 @@ func _build_cmd() -> void:
 		grid.add_child(_btn("🤝 Bond (%d%%)" % Core.codex.bond_rate(battle.enemy["cid"]), _ui_seeker.bind("bond")))
 	grid.add_child(_btn("🏃 Lari", _ui_flee))
 	ui_cmd.add_child(grid)
+
+func _finish() -> void:
+	# terintegrasi ke game -> beri tahu pemanggil; berdiri sendiri -> ulang scene
+	if battle_finished.get_connections().size() > 0:
+		battle_finished.emit(battle)
+	else:
+		get_tree().reload_current_scene()
 
 func _ui_move(mv: Dictionary) -> void:
 	battle.player_move(mv); _refresh()

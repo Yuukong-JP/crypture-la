@@ -3,6 +3,7 @@ func _ready() -> void:
 	var scn = load("res://scenes/BattlePlay3D.tscn").instantiate()
 	scn.enemy_cid = "099"   # Eldergrove (display_scale 1.8) — simulasi raksasa
 	scn.enemy_lv = 14
+	scn.fresh_party = true
 	add_child(scn)
 	for i in range(8): await get_tree().process_frame
 	await RenderingServer.frame_post_draw

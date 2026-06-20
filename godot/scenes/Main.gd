@@ -13,16 +13,20 @@ var battle            # Battle aktif
 var zone_view         # ZoneView aktif (di-detach dari tree saat battle agar tak ter-free)
 var zone_msg: Label   # label status zona (di-update saat lore terkumpul)
 var current_spawn     # spawn yang sedang ditempur
+var _bg: ColorRect    # latar UI (disembunyikan saat battle 3D)
+var _rootui: VBoxContainer
+var _battle3d         # scene BattlePlay3D aktif
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.color = Color("#1b2a22")
-	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(bg)
+	_bg = ColorRect.new()
+	_bg.color = Color("#1b2a22")
+	_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_bg)
 
 	var root := VBoxContainer.new()
+	_rootui = root
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.add_theme_constant_override("separation", 0)
 	add_child(root)
@@ -361,17 +365,33 @@ func _dispose_zone() -> void:
 		zone_view.queue_free()
 	zone_view = null
 
+const BattlePlay3DScene := preload("res://scenes/BattlePlay3D.tscn")
+
 func _on_encounter(spawn) -> void:
-	# lepas zona dari tree agar tak ikut ter-free saat layar battle dibangun
+	# lepas zona dari tree agar tak ikut ter-free
 	if zone_view != null and is_instance_valid(zone_view) and zone_view.get_parent() != null:
 		zone_view.get_parent().remove_child(zone_view)
 	current_spawn = spawn
-	var sp = Core.db.species[spawn["cid"]]
-	var is_apex := not bool(sp.get("bondable", true))
-	var enemy: Dictionary = Core.db.make_instance(spawn["cid"], int(spawn["level"]), not is_apex)
 	Core.codex.add_from_source(spawn["cid"], "encounter")
-	battle = Core.new_battle(Core.state.party, enemy)
-	_render_battle()
+	# luncurkan battle 3D (HD-2D), sembunyikan UI 2D di belakangnya
+	_battle3d = BattlePlay3DScene.instantiate()
+	_battle3d.enemy_cid = String(spawn["cid"])
+	_battle3d.enemy_lv = int(spawn["level"])
+	_battle3d.battle_finished.connect(_on_battle3d_done)
+	_show_ui(false)
+	add_child(_battle3d)
+
+func _show_ui(show: bool) -> void:
+	if _bg != null: _bg.visible = show
+	if _rootui != null: _rootui.visible = show
+
+func _on_battle3d_done(b) -> void:
+	battle = b
+	if _battle3d != null and is_instance_valid(_battle3d):
+		_battle3d.queue_free()
+	_battle3d = null
+	_show_ui(true)
+	_resolve_battle()   # pakai ulang alur hasil battle (GP, misi, Bond, kembali ke zona/hub)
 
 # ---------- BATTLE ----------
 func _render_battle() -> void:
