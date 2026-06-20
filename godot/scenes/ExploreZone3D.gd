@@ -19,6 +19,7 @@ var lores: Array = []       # {lid, for, type, text, name, node, used, pos}
 var exit_pos: Vector3
 var hud_msg: Label
 var _state_player := Vector3(0, 0, 0)
+var _player_base_y := 1.0
 
 func _ready() -> void:
 	_build_world()
@@ -63,7 +64,9 @@ func _build_world() -> void:
 		var pos := _grid_to_world(int(sp["x"]), int(sp["y"]))
 		var node: Sprite3D = _billboard(tex, pos, 1.5 * scale, true) if tex != null else null
 		creatures.append({"sid": sid, "cid": cid, "node": node, "alive": true,
-			"behavior": String(sp.get("behavior", "still")), "pos": pos, "level": int(sp["level"])})
+			"behavior": String(sp.get("behavior", "still")), "pos": pos, "level": int(sp["level"]),
+			"home": pos, "base_y": (node.position.y if node != null else 0.0),
+			"phase": sid * 1.3, "wdir": randf() * TAU})
 		sid += 1
 
 	var lid := 0
@@ -81,6 +84,7 @@ func _build_world() -> void:
 	ex.position = exit_pos + Vector3(0, 1.4, 0); add_child(ex)
 
 	player = _billboard(load("res://assets/world/seeker.png"), _grid_to_world(7, 9), 2.0, true)
+	_player_base_y = player.position.y
 	_state_player = player.position
 
 	cam = Camera3D.new(); cam.fov = 55; add_child(cam); cam.make_current()
@@ -138,10 +142,39 @@ func _process(delta: float) -> void:
 	if dir != Vector3.ZERO:
 		var np: Vector3 = player.position + dir.normalized() * MOVE_SPEED * delta
 		np.x = clampf(np.x, -16, 16); np.z = clampf(np.z, -12, 12)
-		player.position = Vector3(np.x, player.position.y, np.z)
+		player.position = Vector3(np.x, _player_base_y, np.z)
 		_state_player = player.position
 		_update_cam()
 		_check_proximity()
+	_animate_world(delta)
+
+# Goyang-idle + perilaku liar (wander/flee) — bikin dunia terasa hidup.
+func _animate_world(delta: float) -> void:
+	var t := Time.get_ticks_msec() / 1000.0
+	var ppos := Vector2(player.position.x, player.position.z)
+	for c in creatures:
+		if not c["alive"] or c["node"] == null:
+			continue
+		var n: Sprite3D = c["node"]
+		var pos2 := Vector2(n.position.x, n.position.z)
+		var home: Vector3 = c["home"]
+		match c["behavior"]:
+			"wander":
+				c["wdir"] += (randf() - 0.5) * delta * 2.5
+				var nxt := pos2 + Vector2(cos(c["wdir"]), sin(c["wdir"])) * 0.8 * delta
+				if nxt.distance_to(Vector2(home.x, home.z)) > 2.4:
+					c["wdir"] += PI
+				else:
+					pos2 = nxt
+			"flee":
+				if pos2.distance_to(ppos) < 4.0:
+					pos2 += (pos2 - ppos).normalized() * 2.4 * delta
+					pos2.x = clampf(pos2.x, -16, 16); pos2.y = clampf(pos2.y, -12, 12)
+		var bob := sin(t * 2.2 + c["phase"]) * 0.09
+		n.position = Vector3(pos2.x, c["base_y"] + bob, pos2.y)
+		c["pos"] = Vector3(pos2.x, 0, pos2.y)
+	# pemain ikut bergoyang halus
+	player.position.y = _player_base_y + sin(t * 3.0) * 0.05
 
 func _check_proximity() -> void:
 	var pp := Vector2(player.position.x, player.position.z)
