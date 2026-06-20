@@ -2,7 +2,9 @@
 # digerakkan oleh engine Battle yang sudah teruji. Seeker diwakili di UI (aksi), bukan di panggung.
 extends Node3D
 
-const PARTY_X := [-2.4, 0.0, 2.4]
+# Jarak dikompensasi perspektif: gap kanan (dekat kamera) dirapatkan agar tampak rata,
+# dan seluruh grup digeser kiri agar lepas dari panel UI kanan.
+const PARTY_X := [-3.1, -1.1, 0.9]
 const ENEMY_CID := "015"  # Mosswhim
 const ENEMY_LV := 10
 
@@ -63,7 +65,7 @@ func _build_stage() -> void:
 
 	cam = Camera3D.new(); cam.fov = 52; add_child(cam)
 	# sudut pilihan owner
-	var target := Vector3(-0.4, 1.0, -1.6)
+	var target := Vector3(-1.1, 1.0, -1.6)
 	var yr := deg_to_rad(25.0); var pr := deg_to_rad(11.6); var dist := 8.6
 	var dir := Vector3(sin(yr) * cos(pr), sin(pr), cos(yr) * cos(pr))
 	cam.position = target + dir * dist
