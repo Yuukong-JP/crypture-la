@@ -1,5 +1,10 @@
 ; Engine configuration file.
-; Crypture: Lost Avalon — Vertical Slice (Verdwall). Godot 4.x
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
 
 config_version=5
 
@@ -16,9 +21,8 @@ Core="*res://scripts/Core.gd"
 
 [debug]
 
-gdscript/warnings/treat_warnings_as_errors=false
 gdscript/warnings/inference_on_variant=0
-gdscript/warnings/untyped_declaration=0
+gdscript/warnings/treat_warnings_as_errors=false
 
 [display]
 

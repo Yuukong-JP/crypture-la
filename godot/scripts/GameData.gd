@@ -11,9 +11,28 @@ var colors := {}
 var world := {}
 
 var _uid := 0
+var _sprite_cache := {}
 
 func _init() -> void:
 	load_all()
+
+# Texture sprite untuk sebuah Crypture, atau null bila belum ada art.
+# Prioritas: sprite_paths.front di data -> konvensi res://assets/crypture/<nama lowercase>.png
+func sprite_for(cid: String) -> Texture2D:
+	if _sprite_cache.has(cid):
+		return _sprite_cache[cid]
+	var sp: Dictionary = species[cid]
+	var path := ""
+	var sps: Variant = sp.get("sprite_paths", {})
+	if typeof(sps) == TYPE_DICTIONARY and String(sps.get("front", "")) != "":
+		path = String(sps["front"])
+	if path == "":
+		path = "res://assets/crypture/%s.png" % String(sp["name"]).to_lower()
+	var tex: Texture2D = null
+	if ResourceLoader.exists(path):
+		tex = load(path)
+	_sprite_cache[cid] = tex
+	return tex
 
 func _read_json(path: String) -> Variant:
 	var f := FileAccess.open(path, FileAccess.READ)

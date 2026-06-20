@@ -104,15 +104,20 @@ func _draw() -> void:
 		if lp["used"]:
 			continue
 		draw_circle(Vector2(int(lp["x"]) * TILE + TILE / 2, int(lp["y"]) * TILE + TILE / 2), 7, Color("#e7c659"))
-	# creatures
+	# creatures (sprite bila ada, jika tidak lingkaran berhuruf)
 	for c in creatures:
 		if not c["alive"]:
 			continue
 		var sp: Dictionary = db.species[c["cid"]]
-		var col := Color(db.colors.get(sp["types"][0], "#999999"))
 		var center := Vector2(int(c["x"]) * TILE + TILE / 2, int(c["y"]) * TILE + TILE / 2)
-		draw_circle(center, 15, col)
-		draw_string(font, center + Vector2(-6, 6), String(sp["name"]).substr(0, 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#11201a"))
+		var tex: Texture2D = db.sprite_for(c["cid"])
+		if tex != null:
+			var s := float(TILE) + 10.0
+			draw_texture_rect(tex, Rect2(center.x - s / 2, center.y - s / 2 - 4, s, s), false)
+		else:
+			var col := Color(db.colors.get(sp["types"][0], "#999999"))
+			draw_circle(center, 15, col)
+			draw_string(font, center + Vector2(-6, 6), String(sp["name"]).substr(0, 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#11201a"))
 	# pemain
 	draw_circle(Vector2(player["x"] * TILE + TILE / 2, player["y"] * TILE + TILE / 2), 12, Color("#eef3e9"))
 	draw_string(font, Vector2(player["x"] * TILE + TILE / 2 - 6, player["y"] * TILE + TILE / 2 + 6), "S", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#11201a"))

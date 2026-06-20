@@ -209,7 +209,23 @@ func _on_interact(it: Dictionary) -> void:
 	v.add_child(_button("Kembali", show_hub))
 	_set_body(v)
 
-func _unit_row(inst: Dictionary, show_hp := true) -> Control:
+# Node sprite untuk sebuah Crypture; fallback kotak warna-tipe bila belum ada art.
+func _sprite_node(cid: String, px: int) -> Control:
+	var tex: Texture2D = Core.db.sprite_for(cid)
+	if tex != null:
+		var tr := TextureRect.new()
+		tr.texture = tex
+		tr.custom_minimum_size = Vector2(px, px)
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		return tr
+	var sp: Dictionary = Core.db.species[cid]
+	var cr := ColorRect.new()
+	cr.color = Color(Core.db.colors.get(sp["types"][0], "#999999"))
+	cr.custom_minimum_size = Vector2(px, px)
+	return cr
+
+func _unit_row(inst: Dictionary, show_hp := true, extra_button: Control = null) -> Control:
 	var c := _screen()
 	var frac: float = float(inst["hp"]) / float(inst["max_hp"])
 	c.add_child(_label("%s  Lv%d  [%s]  · %s" % [inst["name"], inst["level"], ", ".join(inst["types"]), inst["role"]], 14, Color("#eef3e9")))
@@ -223,7 +239,16 @@ func _unit_row(inst: Dictionary, show_hp := true) -> Control:
 	if show_hp:
 		var st := "  · 🔥" if inst["status"] == "burn" else ""
 		c.add_child(_label("HP %d/%d%s" % [max(0, int(inst["hp"])), inst["max_hp"], st], 12, Color("#a7c0ad")))
-	return _panel(c)
+	if extra_button != null:
+		c.add_child(extra_button)
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 12)
+	var spr := _sprite_node(inst["cid"], 56)
+	spr.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	hb.add_child(spr)
+	c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hb.add_child(c)
+	return _panel(hb)
 
 # ---------- TEAM ----------
 func show_team() -> void:
@@ -238,19 +263,15 @@ func _build_team() -> void:
 	v.add_child(_label("Tim Aktif", 13, Color("#a7c0ad")))
 	for i in range(st.party.size()):
 		var p = st.party[i]
-		var row := _unit_row(p)
 		var btn := _button("Cadangkan", _on_bench.bind(i))
 		btn.disabled = st.party.size() <= 1
-		(row.get_child(0) as MarginContainer).get_child(0).add_child(btn)
-		v.add_child(row)
+		v.add_child(_unit_row(p, true, btn))
 	v.add_child(_label("Koleksi (ter-Bond)", 13, Color("#a7c0ad")))
 	for inst in Core.codex.bonded:
 		var in_party: bool = st.party.has(inst)
-		var row := _unit_row(inst)
 		var btn := _button("Di tim" if in_party else "Masukkan tim", _on_enlist.bind(inst))
 		btn.disabled = in_party or st.party.size() >= 3
-		(row.get_child(0) as MarginContainer).get_child(0).add_child(btn)
-		v.add_child(row)
+		v.add_child(_unit_row(inst, true, btn))
 	v.add_child(_button("← Kembali ke Hub", show_hub))
 	_set_body(v)
 
@@ -299,7 +320,14 @@ func show_codex() -> void:
 			var mark := "✔" if used.has(s["detail"]) else "○"
 			var col := Color("#6fae57") if used.has(s["detail"]) else Color("#7d917f")
 			c.add_child(_label("%s [%s] %s (+%d%%)" % [mark, s["source_type"], s["detail"], int(s["codex_gain"])], 11, col))
-		v.add_child(_panel(c))
+		var chb := HBoxContainer.new()
+		chb.add_theme_constant_override("separation", 12)
+		var cspr := _sprite_node(cid, 64)
+		cspr.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		chb.add_child(cspr)
+		c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		chb.add_child(c)
+		v.add_child(_panel(chb))
 	v.add_child(_button("← Kembali", show_hub))
 	_set_body(v)
 
@@ -369,7 +397,14 @@ func _render_battle() -> void:
 		cond += "  ·  Codex %d%% → Bond %d%%" % [Core.codex.get_pct(enemy["cid"]), Core.codex.bond_rate(enemy["cid"])]
 	ec.add_child(_label(cond, 12, Color("#a7c0ad")))
 	ec.add_child(_label(enemy["species"]["dex_entry"], 12, Color("#7d917f")))
-	v.add_child(_panel(ec))
+	var ehb := HBoxContainer.new()
+	ehb.add_theme_constant_override("separation", 14)
+	var espr := _sprite_node(enemy["cid"], 112)
+	espr.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	ehb.add_child(espr)
+	ec.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ehb.add_child(ec)
+	v.add_child(_panel(ehb))
 
 	# Tim
 	v.add_child(_label("Tim Seeker", 13, Color("#a7c0ad")))
