@@ -1,0 +1,46 @@
+{
+  "_note": "Konten dunia slice: Rank/GP (Bagian 3), Hub + 1 zona Verdwall (Bagian 6), titik interaksi & sumber lore Codex (Bagian 7). Semua data eksternal.",
+  "ranks": [
+    { "rank": 1, "name": "Wanderer",   "gp_required": 0,   "unlocks": "Start. Verdwall zona awal, 3 starter." },
+    { "rank": 2, "name": "Trailblazer","gp_required": 80,  "unlocks": "Kontrak Hub, Verdwall lebih dalam." },
+    { "rank": 3, "name": "Pathfinder", "gp_required": 200, "unlocks": "Jalur menuju Eldergrove (klimaks)." },
+    { "rank": 4, "name": "Vanguard",   "gp_required": 999, "unlocks": "Restricted zone — region lain (coming soon).", "placeholder": true },
+    { "rank": 5, "name": "Sovereign",  "gp_required": 999, "unlocks": "Endgame universe (coming soon).", "placeholder": true }
+  ],
+  "gp_rewards": { "story": 60, "contract": 35, "codex_complete": 25, "exploration": 12 },
+  "hub": {
+    "name": "Outpost Verdwall",
+    "interactions": [
+      { "id": "npc_tetua",   "name": "Tetua Desa Verdwall", "kind": "npc",  "gives_lore_for": ["010", "014"], "text": "“Cappin? Ah, makhluk topi itu. Ia menempel pada siapa pun yang tak memburunya. Brookling lebih pemalu — tunggu kabut, Nak.”" },
+      { "id": "npc_lentera", "name": "Penjaga Lentera",      "kind": "npc",  "gives_lore_for": ["011"],        "text": "“Glimmoth datang ke cahaya, tapi hanya cahaya jamur tua. Lentera buatanku? Ia mencibir.”" },
+      { "id": "npc_batu",    "name": "Tukang Batu Hub",      "kind": "npc",  "gives_lore_for": ["012"],        "text": "“Batu yang kau pijak bisa jadi tertidur. Pebblion percaya pada kesabaran — dan benci dikejutkan.”" },
+      { "id": "book_hutan",  "name": "Buku: Catatan Hutan",  "kind": "book", "gives_lore_for": ["010", "011", "013"], "text": "Lembar-lembar lapuk berisi sketsa penghuni Verdwall: si topi spora, ngengat pendar, dan bayang angin di punggung bukit." },
+      { "id": "book_mata_air","name": "Buku: Legenda Mata Air","kind": "book","gives_lore_for": ["014"],       "text": "“...dan roh mata air hanya menampakkan wujud pada hati yang tak terburu.” — fragmen lontar Merlyon." },
+      { "id": "npc_papan",   "name": "Pengembara (Papan Ekspedisi)", "kind": "npc", "gives_lore_for": ["013"], "text": "“Gustling? Aku kejar seharian, tak pernah kena. Akhirnya kubiarkan — ia malah mengikutiku pulang.”" }
+    ]
+  },
+  "zone": {
+    "id": "verdwall_forest_outer",
+    "name": "Hutan Luar Verdwall",
+    "size": { "w": 16, "h": 11 },
+    "exit": { "x": 1, "y": 9 },
+    "spawns": [
+      { "cid": "010", "x": 5,  "y": 3, "level": 7, "behavior": "graze" },
+      { "cid": "011", "x": 11, "y": 2, "level": 7, "behavior": "wander" },
+      { "cid": "012", "x": 13, "y": 7, "level": 8, "behavior": "still" },
+      { "cid": "013", "x": 8,  "y": 8, "level": 7, "behavior": "flee" },
+      { "cid": "014", "x": 3,  "y": 6, "level": 9, "behavior": "wander" }
+    ],
+    "lore_points": [
+      { "id": "lp_tua",  "x": 5,  "y": 2, "name": "Pohon Tua", "for": "010", "source_type": "habitat", "text": "Cappin merumput tenang di bawah pohon ini." },
+      { "id": "lp_rock", "x": 13, "y": 6, "name": "Tepian Batu", "for": "012", "source_type": "habitat", "text": "Sebuah 'batu' bernapas pelan..." },
+      { "id": "lp_mist", "x": 3,  "y": 5, "name": "Mata Air Kabut", "for": "014", "source_type": "habitat", "text": "Kabut pagi menggantung; sesuatu berkilau di air." }
+    ]
+  },
+  "missions": [
+    { "id": "m_intro", "type": "story", "name": "Langkah Pertama Seeker", "desc": "Jelajah Hutan Luar, temui satu Crypture liar, dan menangkan pertarungan pertamamu.", "rank_req": 1, "gp": 60, "goal": { "kind": "win_any_battle" } },
+    { "id": "m_codex", "type": "contract", "name": "Kontrak: Dokumentasi Cappin", "desc": "Isi Codex Cappin sampai 100% lalu Bond. Kunjungi NPC & buku di Hub untuk petunjuknya.", "rank_req": 1, "gp": 35, "goal": { "kind": "bond", "cid": "010" } },
+    { "id": "m_eco",   "type": "contract", "name": "Kontrak: Sensus Ekosistem", "desc": "Bond 2 Crypture liar berbeda untuk membuktikan kesiapanmu.", "rank_req": 2, "gp": 35, "goal": { "kind": "bond_count", "count": 2 } },
+    { "id": "m_apex",  "type": "story", "name": "Jantung Verdwall", "desc": "Hadapi Eldergrove, sang Apex. Ia tak bisa di-Bond — lemahkan ia, dan tutup story thread Verdwall.", "rank_req": 3, "gp": 120, "goal": { "kind": "defeat_apex", "cid": "099" } }
+  ]
+}

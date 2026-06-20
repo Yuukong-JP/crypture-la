@@ -1,0 +1,31 @@
+; Engine configuration file.
+; Crypture: Lost Avalon — Vertical Slice (Verdwall). Godot 4.x
+
+config_version=5
+
+[application]
+
+config/name="Crypture: Lost Avalon"
+config/description="Vertical Slice — Verdwall. Creature-collector RPG, Bond via Codex."
+run/main_scene="res://scenes/Main.tscn"
+config/features=PackedStringArray("4.3")
+
+[autoload]
+
+Core="*res://scripts/Core.gd"
+
+[debug]
+
+gdscript/warnings/treat_warnings_as_errors=false
+gdscript/warnings/inference_on_variant=0
+gdscript/warnings/untyped_declaration=0
+
+[display]
+
+window/size/viewport_width=960
+window/size/viewport_height=600
+window/stretch/mode="canvas_items"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
