@@ -11,6 +11,7 @@ func _ready() -> void:
 	print("encounter: ", spawn["cid"])
 	main._on_encounter(spawn)
 	for i in range(8): await get_tree().process_frame
+	main._battle3d.animate = false  # driver headless: instan
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png("/tmp/cap_int_battle.png")
 	print("battle launched? ", main._battle3d != null, " ui_hidden? ", not main._bg.visible)

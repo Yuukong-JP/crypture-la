@@ -373,6 +373,7 @@ func _on_encounter(spawn) -> void:
 	_battle3d = BattlePlay3DScene.instantiate()
 	_battle3d.enemy_cid = String(spawn["cid"])
 	_battle3d.enemy_lv = int(spawn["level"])
+	_battle3d.animate = true
 	_battle3d.battle_finished.connect(_on_battle3d_done)
 	add_child(_battle3d)
 

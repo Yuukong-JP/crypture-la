@@ -21,6 +21,8 @@ var ui_enemy: Label
 var ui_party: VBoxContainer
 var ui_cmd: VBoxContainer
 var ui_log: RichTextLabel
+var animate := false   # game (Main) menyalakan; headless/test biarkan mati (instan)
+var _busy := false
 
 func _scale_of(cid: String) -> float:
 	return float(Core.db.species[cid].get("display_scale", 1.0))
@@ -268,11 +270,76 @@ func _finish() -> void:
 		get_tree().reload_current_scene()
 
 func _ui_move(mv: Dictionary) -> void:
-	battle.player_move(mv); _refresh()
+	if _busy: return
+	await _resolve(battle.pending, func(): battle.player_move(mv))
 func _ui_seeker(kind: String) -> void:
-	battle.seeker_action(kind); _refresh()
+	if _busy: return
+	await _resolve(null, func(): battle.seeker_action(kind))
 func _ui_flee() -> void:
-	battle.flee(); _refresh()
+	if _busy: return
+	await _resolve(null, func(): battle.flee())
+
+# Jalankan aksi + "juice": lunge unit yang bertindak, kilatan & angka damage pada yg kena HP.
+func _resolve(actor, act: Callable) -> void:
+	if not animate:
+		act.call(); _refresh(); return
+	_busy = true
+	var before := _hp_snapshot()
+	if actor != null:
+		_lunge(int(actor["uid"]))
+	act.call()
+	var after := _hp_snapshot()
+	var any := false
+	for uid in after.keys():
+		var lost: int = before.get(uid, after[uid]) - after[uid]
+		if lost > 0:
+			_flash(uid); _dmg_number(uid, lost); any = true
+	# musuh menyerang? party kehilangan HP -> lunge musuh
+	var enemy_uid: int = battle.enemy["uid"]
+	for p in Core.state.party:
+		if before.get(p["uid"], 0) - after.get(p["uid"], 0) > 0:
+			_lunge(enemy_uid); break
+	await get_tree().create_timer(0.45 if any else 0.2).timeout
+	_busy = false
+	_refresh()
+
+func _hp_snapshot() -> Dictionary:
+	var s := {battle.enemy["uid"]: int(battle.enemy["hp"])}
+	for p in Core.state.party:
+		s[p["uid"]] = int(p["hp"])
+	return s
+
+func _lunge(uid: int) -> void:
+	var s = spr.get(uid)
+	if s == null: return
+	var base: Vector3 = s.position
+	var toward := -0.6 if uid != battle.enemy["uid"] else 0.6  # party maju ke -z, musuh ke +z
+	var tw := create_tween()
+	tw.tween_property(s, "position", base + Vector3(0, 0, toward), 0.10)
+	tw.tween_property(s, "position", base, 0.14)
+
+func _flash(uid: int) -> void:
+	var s = spr.get(uid)
+	if s == null: return
+	s.modulate = Color(2.2, 2.2, 2.2, 1)
+	create_tween().tween_property(s, "modulate", Color(1, 1, 1, 1), 0.32)
+
+func _dmg_number(uid: int, amount: int) -> void:
+	var s = spr.get(uid)
+	if s == null: return
+	var l := Label3D.new()
+	l.text = "-%d" % amount
+	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	l.font_size = 80; l.outline_size = 18
+	l.modulate = Color("#ff7a4d")
+	l.position = s.position + Vector3(0.2, 1.6, 0)
+	add_child(l)
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(l, "position", l.position + Vector3(0, 1.3, 0), 0.7)
+	tw.tween_property(l, "modulate:a", 0.0, 0.7)
+	tw.set_parallel(false)
+	tw.tween_callback(l.queue_free)
 
 func _find_unit(uid: int):
 	if battle.enemy["uid"] == uid:
