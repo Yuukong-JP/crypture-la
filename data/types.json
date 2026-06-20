@@ -1,0 +1,29 @@
+{
+  "_note": "14x14 dirancang; slice memakai 10 tipe inti Gen 1. Hanya entri non-1.0 yang ditulis; loader mengisi sisanya 1.0. Angka = balance pass nanti (struktur yang dikunci, bukan nilai).",
+  "types": ["Nature", "Ember", "Tide", "Terra", "Gale", "Void", "Lumen", "Crystal", "Alloy", "Feral"],
+  "colors": {
+    "Nature": "#6fae57",
+    "Ember": "#e0683b",
+    "Tide": "#3f8fd0",
+    "Terra": "#b08b53",
+    "Gale": "#8fcfc4",
+    "Void": "#5a4a78",
+    "Lumen": "#e7c659",
+    "Crystal": "#9ec9e0",
+    "Alloy": "#9aa3ad",
+    "Feral": "#a4504f",
+    "Normal": "#c9c2b2"
+  },
+  "chart": {
+    "Nature": { "Tide": 2.0, "Terra": 2.0, "Ember": 0.5, "Nature": 0.5, "Gale": 0.5 },
+    "Ember":  { "Nature": 2.0, "Crystal": 2.0, "Alloy": 2.0, "Tide": 0.5, "Ember": 0.5, "Terra": 0.5 },
+    "Tide":   { "Ember": 2.0, "Terra": 2.0, "Nature": 0.5, "Tide": 0.5 },
+    "Terra":  { "Ember": 2.0, "Crystal": 2.0, "Alloy": 2.0, "Nature": 0.5, "Gale": 0.0 },
+    "Gale":   { "Nature": 2.0, "Feral": 2.0, "Terra": 0.5, "Crystal": 0.5 },
+    "Void":   { "Lumen": 2.0, "Void": 2.0, "Feral": 0.5 },
+    "Lumen":  { "Void": 2.0, "Feral": 2.0, "Lumen": 0.5 },
+    "Crystal":{ "Gale": 2.0, "Tide": 2.0, "Ember": 0.5, "Terra": 0.5 },
+    "Alloy":  { "Crystal": 2.0, "Nature": 2.0, "Ember": 0.5, "Alloy": 0.5 },
+    "Feral":  { "Void": 2.0, "Lumen": 2.0, "Gale": 0.5 }
+  }
+}

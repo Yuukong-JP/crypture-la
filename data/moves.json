@@ -1,0 +1,77 @@
+{
+  "_note": "Skema Move = Data Spec 8.2. Basic attack selalu tersedia (lantai damage). 'Move' = skill role-defining. power/accuracy = provisional, balance pass nanti.",
+  "moves": {
+    "basic_strike": {
+      "id": "basic_strike", "name": "Basic Strike", "type": "Normal",
+      "category": "Physical", "power": 18, "accuracy": 100, "cost": 0,
+      "effect": null, "desc": "Serangan dasar yang selalu tersedia bagi tiap Crypture."
+    },
+
+    "bramble_wall": {
+      "id": "bramble_wall", "name": "Bramble Wall", "type": "Nature",
+      "category": "Status", "power": 0, "accuracy": 100, "cost": 2,
+      "effect": { "kind": "buff", "stat": "def", "stages": 2, "target": "self", "taunt": 2 },
+      "desc": "Mendirikan dinding duri: Def naik tajam & memaksa musuh menyerang dirinya (taunt)."
+    },
+    "ember_fang": {
+      "id": "ember_fang", "name": "Ember Fang", "type": "Ember",
+      "category": "Physical", "power": 45, "accuracy": 95, "cost": 2,
+      "effect": { "kind": "status", "status": "burn", "chance": 0.3 },
+      "desc": "Gigitan membara; berpeluang membakar lawan."
+    },
+    "tide_mend": {
+      "id": "tide_mend", "name": "Tide Mend", "type": "Tide",
+      "category": "Status", "power": 0, "accuracy": 100, "cost": 2,
+      "effect": { "kind": "heal", "amount": 0.35, "target": "ally_lowest", "also": { "stat": "sp_def", "stages": 1, "target": "self" } },
+      "desc": "Mengalirkan air penyembuh ke rekan paling terluka; Sp.Def diri naik."
+    },
+    "spore_drift": {
+      "id": "spore_drift", "name": "Spore Drift", "type": "Nature",
+      "category": "Status", "power": 0, "accuracy": 90, "cost": 2,
+      "effect": { "kind": "debuff", "stat": "atk", "stages": 1, "target": "enemy" },
+      "desc": "Menyebar spora yang menumpulkan serangan lawan (Atk turun)."
+    },
+
+    "glare_pulse": {
+      "id": "glare_pulse", "name": "Glare Pulse", "type": "Lumen",
+      "category": "Special", "power": 40, "accuracy": 100, "cost": 2,
+      "effect": null, "desc": "Denyut cahaya menyilaukan."
+    },
+    "rock_lob": {
+      "id": "rock_lob", "name": "Rock Lob", "type": "Terra",
+      "category": "Physical", "power": 42, "accuracy": 90, "cost": 2,
+      "effect": null, "desc": "Melempar bongkahan batu berat."
+    },
+    "gust_slash": {
+      "id": "gust_slash", "name": "Gust Slash", "type": "Gale",
+      "category": "Physical", "power": 38, "accuracy": 95, "cost": 2,
+      "effect": { "kind": "debuff", "stat": "speed", "stages": 1, "target": "enemy" },
+      "desc": "Sabetan angin tajam yang memperlambat lawan."
+    },
+    "bubble_veil": {
+      "id": "bubble_veil", "name": "Bubble Veil", "type": "Tide",
+      "category": "Status", "power": 0, "accuracy": 100, "cost": 2,
+      "effect": { "kind": "buff", "stat": "sp_def", "stages": 2, "target": "self" },
+      "desc": "Selubung gelembung menebalkan pertahanan khusus."
+    },
+
+    "verdant_judgement": {
+      "id": "verdant_judgement", "name": "Verdant Judgement", "type": "Nature",
+      "category": "Special", "power": 72, "accuracy": 100, "cost": 3,
+      "effect": { "kind": "aoe" },
+      "desc": "Vonis hutan menghantam SELURUH tim Seeker sekaligus."
+    },
+    "primal_crush": {
+      "id": "primal_crush", "name": "Primal Crush", "type": "Normal",
+      "category": "Physical", "power": 52, "accuracy": 100, "cost": 3,
+      "effect": null,
+      "desc": "Hantaman murni tanpa elemen — menembus tim yang mengandalkan resistansi tipe."
+    },
+    "deep_roots": {
+      "id": "deep_roots", "name": "Deep Roots", "type": "Nature",
+      "category": "Status", "power": 0, "accuracy": 100, "cost": 3,
+      "effect": { "kind": "heal", "amount": 0.18, "target": "self" },
+      "desc": "Akar purba menyerap kehidupan tanah; Eldergrove memulihkan diri."
+    }
+  }
+}

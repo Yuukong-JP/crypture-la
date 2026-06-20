@@ -1,0 +1,2635 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Crypture: Lost Avalon — Vertical Slice (Verdwall)</title>
+<style>
+  :root{
+    --bg:#1b2a22; --panel:#243a30; --panel2:#2c463a; --ink:#eef3e9; --muted:#a7c0ad;
+    --gold:#e7c659; --leaf:#6fae57; --warm:#e0683b; --tide:#3f8fd0; --line:#3a5547;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:"Segoe UI",system-ui,sans-serif;color:var(--ink);
+    background:radial-gradient(1200px 700px at 70% -10%,#2c4636 0%,#16241d 60%,#0f1a15 100%);
+    display:flex;align-items:center;justify-content:center;min-height:100%;
+  }
+  #app{width:880px;max-width:96vw;background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.45)}
+  #topbar{display:flex;gap:14px;align-items:center;padding:10px 16px;background:linear-gradient(90deg,#22382d,#2a4639);
+    border-bottom:1px solid var(--line);font-size:14px}
+  #topbar .brand{font-weight:700;letter-spacing:.5px;color:var(--gold)}
+  #topbar .brand small{color:var(--muted);font-weight:400;letter-spacing:0}
+  #topbar .spacer{flex:1}
+  .pill{background:#1d2e26;border:1px solid var(--line);border-radius:20px;padding:4px 12px;font-size:13px}
+  .pill b{color:var(--gold)}
+  #screen{padding:18px;min-height:430px}
+  h2{margin:.1em 0 .5em;font-size:20px}
+  h3{margin:.6em 0 .3em;font-size:15px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+  p.lead{color:var(--muted);margin:.2em 0 1em;line-height:1.5}
+  button{font:inherit;cursor:pointer;color:var(--ink);background:#33513f;border:1px solid #436b53;
+    border-radius:9px;padding:9px 14px;transition:.12s}
+  button:hover:not(:disabled){background:#3d6049;transform:translateY(-1px)}
+  button:disabled{opacity:.4;cursor:default}
+  button.primary{background:linear-gradient(180deg,#6fae57,#588f45);border-color:#7cc063;color:#10231a;font-weight:600}
+  button.warm{background:linear-gradient(180deg,#e0683b,#c0542d);border-color:#ef7a4d;color:#2a120a;font-weight:600}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .grid{display:grid;gap:10px}
+  .card{background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:12px}
+  .menu{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+  .blob{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-weight:800;color:#10231a;flex:none;box-shadow:inset 0 -6px 10px rgba(0,0,0,.18)}
+  .type{display:inline-block;font-size:11px;padding:1px 8px;border-radius:10px;color:#11201a;font-weight:700}
+  .role{font-size:11px;color:var(--muted)}
+  .bar{height:9px;border-radius:6px;background:#16241d;overflow:hidden;border:1px solid #16241d}
+  .bar > i{display:block;height:100%;background:linear-gradient(90deg,#6fae57,#9ed27f)}
+  .bar.low > i{background:linear-gradient(90deg,#e0683b,#eaa05f)}
+  .bar.codex > i{background:linear-gradient(90deg,#e7c659,#f3df9a)}
+  .unit{display:flex;gap:11px;align-items:center}
+  .unit .meta{flex:1;min-width:0}
+  .name{font-weight:600}
+  .small{font-size:12px;color:var(--muted)}
+  #log{height:150px;overflow:auto;background:#15231c;border:1px solid var(--line);border-radius:9px;
+    padding:10px 12px;font-size:13px;line-height:1.55}
+  #log div{padding:1px 0;border-bottom:1px dashed rgba(255,255,255,.04)}
+  canvas{background:#24402c;border-radius:10px;display:block;image-rendering:pixelated;width:100%;border:1px solid var(--line)}
+  .band{font-weight:700}
+  .b-full{color:#9ed27f}.b-ok{color:#bcd98f}.b-mid{color:#e7c659}.b-low{color:#eaa05f}.b-crit{color:#e0683b}.b-out{color:#888}
+  .hint{font-size:12px;color:var(--muted);margin-top:8px}
+  .tag{display:inline-block;font-size:11px;background:#1d2e26;border:1px solid var(--line);border-radius:6px;padding:1px 7px;margin:2px 2px 0 0}
+  .src{font-size:12px;color:var(--muted);padding:2px 0}
+  .src.done{color:#9ed27f}
+  a{color:var(--gold)}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <span class="brand">CRYPTURE <small>· Lost Avalon — Verdwall slice</small></span>
+    <span class="spacer"></span>
+    <span class="pill" id="t-rank">Rank —</span>
+    <span class="pill" id="t-gp">GP <b>0</b></span>
+    <span class="pill" id="t-loc">—</span>
+  </div>
+  <div id="screen"></div>
+</div>
+
+<!-- data eksternal (di-inline dari data/*.json oleh tools/build_data.py agar jalan via file://) -->
+<script>
+/* ===== build/data.js ===== */
+window.GAME_DATA = {
+  "types": {
+    "_note": "14x14 dirancang; slice memakai 10 tipe inti Gen 1. Hanya entri non-1.0 yang ditulis; loader mengisi sisanya 1.0. Angka = balance pass nanti (struktur yang dikunci, bukan nilai).",
+    "types": [
+      "Nature",
+      "Ember",
+      "Tide",
+      "Terra",
+      "Gale",
+      "Void",
+      "Lumen",
+      "Crystal",
+      "Alloy",
+      "Feral"
+    ],
+    "colors": {
+      "Nature": "#6fae57",
+      "Ember": "#e0683b",
+      "Tide": "#3f8fd0",
+      "Terra": "#b08b53",
+      "Gale": "#8fcfc4",
+      "Void": "#5a4a78",
+      "Lumen": "#e7c659",
+      "Crystal": "#9ec9e0",
+      "Alloy": "#9aa3ad",
+      "Feral": "#a4504f",
+      "Normal": "#c9c2b2"
+    },
+    "chart": {
+      "Nature": {
+        "Tide": 2.0,
+        "Terra": 2.0,
+        "Ember": 0.5,
+        "Nature": 0.5,
+        "Gale": 0.5
+      },
+      "Ember": {
+        "Nature": 2.0,
+        "Crystal": 2.0,
+        "Alloy": 2.0,
+        "Tide": 0.5,
+        "Ember": 0.5,
+        "Terra": 0.5
+      },
+      "Tide": {
+        "Ember": 2.0,
+        "Terra": 2.0,
+        "Nature": 0.5,
+        "Tide": 0.5
+      },
+      "Terra": {
+        "Ember": 2.0,
+        "Crystal": 2.0,
+        "Alloy": 2.0,
+        "Nature": 0.5,
+        "Gale": 0.0
+      },
+      "Gale": {
+        "Nature": 2.0,
+        "Feral": 2.0,
+        "Terra": 0.5,
+        "Crystal": 0.5
+      },
+      "Void": {
+        "Lumen": 2.0,
+        "Void": 2.0,
+        "Feral": 0.5
+      },
+      "Lumen": {
+        "Void": 2.0,
+        "Feral": 2.0,
+        "Lumen": 0.5
+      },
+      "Crystal": {
+        "Gale": 2.0,
+        "Tide": 2.0,
+        "Ember": 0.5,
+        "Terra": 0.5
+      },
+      "Alloy": {
+        "Crystal": 2.0,
+        "Nature": 2.0,
+        "Ember": 0.5,
+        "Alloy": 0.5
+      },
+      "Feral": {
+        "Void": 2.0,
+        "Lumen": 2.0,
+        "Gale": 0.5
+      }
+    }
+  },
+  "moves": {
+    "_note": "Skema Move = Data Spec 8.2. Basic attack selalu tersedia (lantai damage). 'Move' = skill role-defining. power/accuracy = provisional, balance pass nanti.",
+    "moves": {
+      "basic_strike": {
+        "id": "basic_strike",
+        "name": "Basic Strike",
+        "type": "Normal",
+        "category": "Physical",
+        "power": 18,
+        "accuracy": 100,
+        "cost": 0,
+        "effect": null,
+        "desc": "Serangan dasar yang selalu tersedia bagi tiap Crypture."
+      },
+      "bramble_wall": {
+        "id": "bramble_wall",
+        "name": "Bramble Wall",
+        "type": "Nature",
+        "category": "Status",
+        "power": 0,
+        "accuracy": 100,
+        "cost": 2,
+        "effect": {
+          "kind": "buff",
+          "stat": "def",
+          "stages": 2,
+          "target": "self",
+          "taunt": 2
+        },
+        "desc": "Mendirikan dinding duri: Def naik tajam & memaksa musuh menyerang dirinya (taunt)."
+      },
+      "ember_fang": {
+        "id": "ember_fang",
+        "name": "Ember Fang",
+        "type": "Ember",
+        "category": "Physical",
+        "power": 45,
+        "accuracy": 95,
+        "cost": 2,
+        "effect": {
+          "kind": "status",
+          "status": "burn",
+          "chance": 0.3
+        },
+        "desc": "Gigitan membara; berpeluang membakar lawan."
+      },
+      "tide_mend": {
+        "id": "tide_mend",
+        "name": "Tide Mend",
+        "type": "Tide",
+        "category": "Status",
+        "power": 0,
+        "accuracy": 100,
+        "cost": 2,
+        "effect": {
+          "kind": "heal",
+          "amount": 0.35,
+          "target": "ally_lowest",
+          "also": {
+            "stat": "sp_def",
+            "stages": 1,
+            "target": "self"
+          }
+        },
+        "desc": "Mengalirkan air penyembuh ke rekan paling terluka; Sp.Def diri naik."
+      },
+      "spore_drift": {
+        "id": "spore_drift",
+        "name": "Spore Drift",
+        "type": "Nature",
+        "category": "Status",
+        "power": 0,
+        "accuracy": 90,
+        "cost": 2,
+        "effect": {
+          "kind": "debuff",
+          "stat": "atk",
+          "stages": 1,
+          "target": "enemy"
+        },
+        "desc": "Menyebar spora yang menumpulkan serangan lawan (Atk turun)."
+      },
+      "glare_pulse": {
+        "id": "glare_pulse",
+        "name": "Glare Pulse",
+        "type": "Lumen",
+        "category": "Special",
+        "power": 40,
+        "accuracy": 100,
+        "cost": 2,
+        "effect": null,
+        "desc": "Denyut cahaya menyilaukan."
+      },
+      "rock_lob": {
+        "id": "rock_lob",
+        "name": "Rock Lob",
+        "type": "Terra",
+        "category": "Physical",
+        "power": 42,
+        "accuracy": 90,
+        "cost": 2,
+        "effect": null,
+        "desc": "Melempar bongkahan batu berat."
+      },
+      "gust_slash": {
+        "id": "gust_slash",
+        "name": "Gust Slash",
+        "type": "Gale",
+        "category": "Physical",
+        "power": 38,
+        "accuracy": 95,
+        "cost": 2,
+        "effect": {
+          "kind": "debuff",
+          "stat": "speed",
+          "stages": 1,
+          "target": "enemy"
+        },
+        "desc": "Sabetan angin tajam yang memperlambat lawan."
+      },
+      "bubble_veil": {
+        "id": "bubble_veil",
+        "name": "Bubble Veil",
+        "type": "Tide",
+        "category": "Status",
+        "power": 0,
+        "accuracy": 100,
+        "cost": 2,
+        "effect": {
+          "kind": "buff",
+          "stat": "sp_def",
+          "stages": 2,
+          "target": "self"
+        },
+        "desc": "Selubung gelembung menebalkan pertahanan khusus."
+      },
+      "verdant_judgement": {
+        "id": "verdant_judgement",
+        "name": "Verdant Judgement",
+        "type": "Nature",
+        "category": "Special",
+        "power": 72,
+        "accuracy": 100,
+        "cost": 3,
+        "effect": {
+          "kind": "aoe"
+        },
+        "desc": "Vonis hutan menghantam SELURUH tim Seeker sekaligus."
+      },
+      "primal_crush": {
+        "id": "primal_crush",
+        "name": "Primal Crush",
+        "type": "Normal",
+        "category": "Physical",
+        "power": 52,
+        "accuracy": 100,
+        "cost": 3,
+        "effect": null,
+        "desc": "Hantaman murni tanpa elemen — menembus tim yang mengandalkan resistansi tipe."
+      },
+      "deep_roots": {
+        "id": "deep_roots",
+        "name": "Deep Roots",
+        "type": "Nature",
+        "category": "Status",
+        "power": 0,
+        "accuracy": 100,
+        "cost": 3,
+        "effect": {
+          "kind": "heal",
+          "amount": 0.18,
+          "target": "self"
+        },
+        "desc": "Akar purba menyerap kehidupan tanah; Eldergrove memulihkan diri."
+      }
+    }
+  },
+  "crypture": {
+    "_note": "Skema = Data Spec 8.1. base_stats di sini PROVISIONAL agar slice bisa dimainkan (dokumen menaruh 0 utk diisi balance pass). Struktur & info_sources final sebagai pola. Tambah Crypture = tambah 1 entri, tanpa sentuh kode.",
+    "crypture": [
+      {
+        "id": "001",
+        "name": "Verduck",
+        "types": [
+          "Nature"
+        ],
+        "class": "Guardian",
+        "role": "tank",
+        "rarity": "Starter",
+        "bondable": true,
+        "base_stats": {
+          "hp": 32,
+          "atk": 9,
+          "def": 12,
+          "sp_atk": 8,
+          "sp_def": 11,
+          "speed": 7
+        },
+        "growth_curve": {
+          "hp": 6,
+          "atk": 1,
+          "def": 3,
+          "sp_atk": 1,
+          "sp_def": 2,
+          "speed": 1
+        },
+        "abilities": [
+          {
+            "id": "bark_skin",
+            "name": "Bark Skin",
+            "unlock_level": 1,
+            "desc": "Menerima 15% lebih sedikit damage."
+          },
+          {
+            "id": "rooted",
+            "name": "Rooted",
+            "unlock_level": 10,
+            "desc": "Kebal terhadap penurunan Speed."
+          }
+        ],
+        "natural_skill": {
+          "move": "bramble_wall",
+          "learn_level": 1
+        },
+        "custom_slot": 1,
+        "tm_compat": [
+          "bubble_veil",
+          "spore_drift"
+        ],
+        "evolution": {
+          "trigger": "level",
+          "value": 18,
+          "target": "002"
+        },
+        "region": "Verdwall",
+        "habitat": [
+          "verdwall_forest_outer"
+        ],
+        "wild_multiplier": 1.0,
+        "info_sources": [
+          {
+            "source_type": "lore",
+            "detail": "Diberikan oleh Guild saat intro (auto-Bond)",
+            "location": "hub",
+            "codex_gain": 100
+          }
+        ],
+        "sprite_paths": {
+          "front": "",
+          "back": "",
+          "icon": ""
+        },
+        "dex_entry": "Penjaga rawa berdarah dingin yang memilih bertahan ketimbang menyerang. Cangkang lumutnya menebal tiap musim."
+      },
+      {
+        "id": "003",
+        "name": "Pyruff",
+        "types": [
+          "Ember"
+        ],
+        "class": "Wanderer",
+        "role": "attacker",
+        "rarity": "Starter",
+        "bondable": true,
+        "base_stats": {
+          "hp": 24,
+          "atk": 13,
+          "def": 7,
+          "sp_atk": 11,
+          "sp_def": 7,
+          "speed": 11
+        },
+        "growth_curve": {
+          "hp": 4,
+          "atk": 4,
+          "def": 1,
+          "sp_atk": 2,
+          "sp_def": 1,
+          "speed": 2
+        },
+        "abilities": [
+          {
+            "id": "kindling",
+            "name": "Kindling",
+            "unlock_level": 1,
+            "desc": "Atk +30% saat HP di bawah sepertiga."
+          },
+          {
+            "id": "scorch",
+            "name": "Scorch",
+            "unlock_level": 8,
+            "desc": "Basic attack berpeluang membakar."
+          }
+        ],
+        "natural_skill": {
+          "move": "ember_fang",
+          "learn_level": 1
+        },
+        "custom_slot": 1,
+        "tm_compat": [
+          "gust_slash"
+        ],
+        "evolution": {
+          "trigger": "level",
+          "value": 18,
+          "target": "004"
+        },
+        "region": "Verdwall",
+        "habitat": [
+          "verdwall_forest_outer"
+        ],
+        "wild_multiplier": 1.0,
+        "info_sources": [
+          {
+            "source_type": "lore",
+            "detail": "Diberikan oleh Guild saat intro (auto-Bond)",
+            "location": "hub",
+            "codex_gain": 100
+          }
+        ],
+        "sprite_paths": {
+          "front": "",
+          "back": "",
+          "icon": ""
+        },
+        "dex_entry": "Anak api berbulu yang tak bisa diam. Ekornya menyala lebih terang saat ia terdesak — bukti nyali, kata para Seeker."
+      },
+      {
+        "id": "005",
+        "name": "Ripplet",
+        "types": [
+          "Tide"
+        ],
+        "class": "Mystic",
+        "role": "support",
+        "rarity": "Starter",
+        "bondable": true,
+        "base_stats": {
+          "hp": 27,
+          "atk": 8,
+          "def": 9,
+          "sp_atk": 12,
+          "sp_def": 12,
+          "speed": 9
+        },
+        "growth_curve": {
+          "hp": 5,
+          "atk": 1,
+          "def": 2,
+          "sp_atk": 3,
+          "sp_def": 3,
+          "speed": 1
+        },
+        "abilities": [
+          {
+            "id": "tidecaller",
+            "name": "Tidecaller",
+            "unlock_level": 1,
+            "desc": "Efek penyembuhan +15%."
+          },
+          {
+            "id": "undertow",
+            "name": "Undertow",
+            "unlock_level": 10,
+            "desc": "Skill Tide menurunkan Speed musuh."
+          }
+        ],
+        "natural_skill": {
+          "move": "tide_mend",
+          "learn_level": 1
+        },
+        "custom_slot": 1,
+        "tm_compat": [
+          "bubble_veil"
+        ],
+        "evolution": {
+          "trigger": "level",
+          "value": 18,
+          "target": "006"
+        },
+        "region": "Verdwall",
+        "habitat": [
+          "verdwall_forest_outer"
+        ],
+        "wild_multiplier": 1.0,
+        "info_sources": [
+          {
+            "source_type": "lore",
+            "detail": "Diberikan oleh Guild saat intro (auto-Bond)",
+            "location": "hub",
+            "codex_gain": 100
+          }
+        ],
+        "sprite_paths": {
+          "front": "",
+          "back": "",
+          "icon": ""
+        },
+        "dex_entry": "Roh kolam yang tenang. Dikatakan Ripplet menyembuhkan luka yang bahkan tak terlihat oleh pemiliknya."
+      },
+      {
+        "id": "010",
+        "name": "Cappin",
+        "types": [
+          "Nature"
+        ],
+        "class": "Wanderer",
+        "role": "support",
+        "rarity": "Common",
+        "bondable": true,
+        "base_stats": {
+          "hp": 26,
+          "atk": 9,
+          "def": 9,
+          "sp_atk": 9,
+          "sp_def": 9,
+          "speed": 9
+        },
+        "growth_curve": {
+          "hp": 4,
+          "atk": 2,
+          "def": 2,
+          "sp_atk": 2,
+          "sp_def": 2,
+          "speed": 2
+        },
+        "abilities": [
+          {
+            "id": "soft_steps",
+            "name": "Soft Steps",
+            "unlock_level": 1,
+            "desc": "Lebih mungkin lolos saat Lari."
+          },
+          {
+            "id": "spore_cloud",
+            "name": "Spore Cloud",
+            "unlock_level": 9,
+            "desc": "Spore Drift kadang juga menidurkan."
+          }
+        ],
+        "natural_skill": {
+          "move": "spore_drift",
+          "learn_level": 1
+        },
+        "custom_slot": 1,
+        "tm_compat": [
+          "bubble_veil"
+        ],
+        "evolution": {
+          "trigger": "level",
+          "value": 20,
+          "target": "gloowaddle"
+        },
+        "region": "Verdwall",
+        "habitat": [
+          "verdwall_forest_outer"
+        ],
+        "wild_multiplier": 1.25,
+        "info_sources": [
+          {
+            "source_type": "encounter",
+            "detail": "Jumpa di hutan luar",
+            "location": "verdwall_forest_outer",
+            "codex_gain": 20
+          },
+          {
+            "source_type": "move_obs",
+            "detail": "Lihat ia memakai Spore Drift",
+            "location": "battle",
+            "codex_gain": 15
+          },
+          {
+            "source_type": "habitat",
+            "detail": "Amati ia merumput di bawah pohon tua",
+            "location": "verdwall_forest_outer",
+            "codex_gain": 15
+          },
+          {
+            "source_type": "lore",
+            "detail": "NPC: Tetua Desa Verdwall",
+            "location": "hub",
+            "codex_gain": 25
+          },
+          {
+            "source_type": "lore",
+            "detail": "Buku: Catatan Hutan",
+            "location": "hub",
+            "codex_gain": 25
+          }
+        ],
+        "sprite_paths": {
+          "front": "",
+          "back": "",
+          "icon": ""
+        },
+        "dex_entry": "Crypture pertama yang berani mendekati manusia. Topi sporanya mengembang saat ia merasa aman."
+      },
+      {
+        "id": "011",
+        "name": "Glimmoth",
+        "types": [
+          "Lumen"
+        ],
+        "class": "Mystic",
+        "role": "attacker",
+        "rarity": "Common",
+        "bondable": true,
+        "base_stats": {
+          "hp": 22,
+          "atk": 7,
+          "def": 7,
+          "sp_atk": 12,
+          "sp_def": 9,
+          "speed": 12
+        },
+        "growth_curve": {
+          "hp": 4,
+          "atk": 1,
+          "def": 1,
+          "sp_atk": 3,
+          "sp_def": 2,
+          "speed": 3
+        },
+        "abilities": [
+          {
+            "id": "dust_glow",
+            "name": "Dust Glow",
+            "unlock_level": 1,
+            "desc": "Skill Lumen sedikit lebih kuat."
+          },
+          {
+            "id": "flutter",
+            "name": "Flutter",
+            "unlock_level": 9,
+            "desc": "Speed +1 di awal battle."
+          }
+        ],
+        "natural_skill": {
+          "move": "glare_pulse",
+          "learn_level": 1
+        },
+        "custom_slot": 1,
+        "tm_compat": [],
+        "evolution": null,
+        "region": "Verdwall",
+        "habitat": [
+          "verdwall_forest_outer"
+        ],
+        "wild_multiplier": 1.25,
+        "info_sources": [
+          {
+            "source_type": "encounter",
+            "detail": "Jumpa di rumpun bercahaya",
+            "location": "verdwall_forest_outer",
+            "codex_gain": 25
+          },
+          {
+            "source_type": "move_obs",
+            "detail": "Lihat ia memakai Glare Pulse",
+            "location": "battle",
+            "codex_gain": 20
+          },
+          {
+            "source_type": "lore",
+            "detail": "Buku: Catatan Hutan",
+            "location": "hub",
+            "codex_gain": 25
+          },
+          {
+            "source_type": "lore",
+            "detail": "NPC: Penjaga Lentera",
+            "location": "hub",
+            "codex_gain": 30
+          }
+        ],
+        "sprite_paths": {
+          "front": "",
+          "back": "",
+          "icon": ""
+        },
+        "dex_entry": "Ngengat cahaya yang hanya muncul di rumpun jamur berpendar. Tepung sayapnya konon memandu Seeker yang tersesat."
+      },
+      {
+        "id": "012",
+        "name": "Pebblion",
+        "types": [
+          "Terra"
+        ],
+        "class": "Guardian",
+        "role": "tank",
+        "rarity": "Common",
+        "bondable": true,
+        "base_stats": {
+          "hp": 30,
+          "atk": 11,
+          "def": 13,
+          "sp_atk": 6,
+          "sp_def": 8,
+          "speed": 5
+        },
+        "growth_curve": {
+          "hp": 6,
+          "atk": 2,
+          "def": 3,
+          "sp_atk": 1,
+          "sp_def": 1,
+          "speed": 1
+        },
+        "abilities": [
+          {
+            "id": "sturdy_hide",
+            "name": "Sturdy Hide",
+            "unlock_level": 1,
+            "desc": "Menerima 10% lebih sedikit damage fisik."
+          },
+          {
+            "id": "tremor",
+            "name": "Tremor",
+            "unlock_level": 11,
+            "desc": "Rock Lob kadang menurunkan Def musuh."
+          }
+        ],
+        "natural_skill": {
+          "move": "rock_lob",
+          "learn_level": 1
+        },
+        "custom_slot": 1,
+        "tm_compat": [
+          "spore_drift"
+        ],
+        "evolution": null,
+        "region": "Verdwall",
+        "habitat": [
+          "verdwall_forest_outer"
+        ],
+        "wild_multiplier": 1.3,
+        "info_sources": [
+          {
+            "source_type": "encounter",
+            "detail": "Jumpa di tepian berbatu",
+            "location": "verdwall_forest_outer",
+            "codex_gain": 25
+          },
+          {
+            "source_type": "move_obs",
+            "detail": "Lihat ia memakai Rock Lob",
+            "location": "battle",
+            "codex_gain": 20
+          },
+          {
+            "source_type": "habitat",
+            "detail": "Amati ia tidur menyamar jadi batu",
+            "location": "verdwall_forest_outer",
+            "codex_gain": 20
+          },
+          {
+            "source_type": "lore",
+            "detail": "NPC: Tukang Batu Hub",
+            "location": "hub",
+            "codex_gain": 35
+          }
+        ],
+        "sprite_paths": {
+          "front": "",
+          "back": "",
+          "icon": ""
+        },
+        "dex_entry": "Bongkahan hidup yang tidur berabad-abad. Yang sabar menunggu konon akan disambut sebagai sekutu paling setia."
+      },
+      {
+        "id": "013",
+        "name": "Gustling",
+        "types": [
+          "Gale"
+        ],
+        "class": "Wanderer",
+        "role": "attacker",
+        "rarity": "Common",
+        "bondable": true,
+        "base_stats": {
+          "hp": 23,
+          "atk": 12,
+          "def": 7,
+          "sp_atk": 8,
+          "sp_def": 7,
+          "speed": 14
+        },
+        "growth_curve": {
+          "hp": 4,
+          "atk": 3,
+          "def": 1,
+          "sp_atk": 1,
+          "sp_def": 1,
+          "speed": 3
+        },
+        "abilities": [
+          {
+            "id": "tailwind",
+            "name": "Tailwind",
+            "unlock_level": 1,
+            "desc": "Sering bergerak lebih dulu."
+          },
+          {
+            "id": "evasive",
+            "name": "Evasive",
+            "unlock_level": 10,
+            "desc": "Kadang mengelak serangan."
+          }
+        ],
+        "natural_skill": {
+          "move": "gust_slash",
+          "learn_level": 1
+        },
+        "custom_slot": 1,
+        "tm_compat": [],
+        "evolution": null,
+        "region": "Verdwall",
+        "habitat": [
+          "verdwall_forest_outer"
+        ],
+        "wild_multiplier": 1.25,
+        "info_sources": [
+          {
+            "source_type": "encounter",
+            "detail": "Jumpa di punggung bukit berangin",
+            "location": "verdwall_forest_outer",
+            "codex_gain": 25
+          },
+          {
+            "source_type": "move_obs",
+            "detail": "Lihat ia memakai Gust Slash",
+            "location": "battle",
+            "codex_gain": 20
+          },
+          {
+            "source_type": "lore",
+            "detail": "NPC: Pengembara di Papan Ekspedisi",
+            "location": "hub",
+            "codex_gain": 30
+          },
+          {
+            "source_type": "lore",
+            "detail": "Buku: Catatan Hutan",
+            "location": "hub",
+            "codex_gain": 25
+          }
+        ],
+        "sprite_paths": {
+          "front": "",
+          "back": "",
+          "icon": ""
+        },
+        "dex_entry": "Secepat bisikan di dedaunan. Gustling jarang menyerang lebih dulu, tapi tak pernah kalah lari."
+      },
+      {
+        "id": "014",
+        "name": "Brookling",
+        "types": [
+          "Tide"
+        ],
+        "class": "Mystic",
+        "role": "support",
+        "rarity": "Uncommon",
+        "bondable": true,
+        "base_stats": {
+          "hp": 25,
+          "atk": 7,
+          "def": 10,
+          "sp_atk": 11,
+          "sp_def": 11,
+          "speed": 8
+        },
+        "growth_curve": {
+          "hp": 5,
+          "atk": 1,
+          "def": 2,
+          "sp_atk": 3,
+          "sp_def": 3,
+          "speed": 1
+        },
+        "abilities": [
+          {
+            "id": "clear_water",
+            "name": "Clear Water",
+            "unlock_level": 1,
+            "desc": "Sedikit lebih tahan terhadap status."
+          },
+          {
+            "id": "spring",
+            "name": "Spring",
+            "unlock_level": 12,
+            "desc": "Memulihkan sedikit HP tiap giliran saat di bawah separuh."
+          }
+        ],
+        "natural_skill": {
+          "move": "bubble_veil",
+          "learn_level": 1
+        },
+        "custom_slot": 1,
+        "tm_compat": [
+          "tide_mend"
+        ],
+        "evolution": null,
+        "region": "Verdwall",
+        "habitat": [
+          "verdwall_forest_outer"
+        ],
+        "wild_multiplier": 1.3,
+        "info_sources": [
+          {
+            "source_type": "encounter",
+            "detail": "Jumpa di mata air tersembunyi",
+            "location": "verdwall_forest_outer",
+            "codex_gain": 20
+          },
+          {
+            "source_type": "move_obs",
+            "detail": "Lihat ia memakai Bubble Veil",
+            "location": "battle",
+            "codex_gain": 15
+          },
+          {
+            "source_type": "habitat",
+            "detail": "Amati ia muncul hanya saat kabut pagi",
+            "location": "verdwall_forest_outer",
+            "codex_gain": 15
+          },
+          {
+            "source_type": "lore",
+            "detail": "NPC: Tetua Desa Verdwall",
+            "location": "hub",
+            "codex_gain": 20
+          },
+          {
+            "source_type": "lore",
+            "detail": "Buku: Legenda Mata Air",
+            "location": "hub",
+            "codex_gain": 30
+          }
+        ],
+        "sprite_paths": {
+          "front": "",
+          "back": "",
+          "icon": ""
+        },
+        "dex_entry": "Konon Brookling hanya menampakkan diri pada Seeker yang sabar menunggu kabut pagi terangkat."
+      },
+      {
+        "id": "099",
+        "name": "Eldergrove",
+        "types": [
+          "Nature"
+        ],
+        "class": "Apex",
+        "role": "tank",
+        "rarity": "Regional Apex",
+        "bondable": false,
+        "base_stats": {
+          "hp": 90,
+          "atk": 16,
+          "def": 14,
+          "sp_atk": 18,
+          "sp_def": 14,
+          "speed": 8
+        },
+        "growth_curve": {
+          "hp": 8,
+          "atk": 2,
+          "def": 2,
+          "sp_atk": 3,
+          "sp_def": 2,
+          "speed": 1
+        },
+        "abilities": [
+          {
+            "id": "ancient_bark",
+            "name": "Ancient Bark",
+            "unlock_level": 1,
+            "desc": "Menerima 20% lebih sedikit damage."
+          },
+          {
+            "id": "awakening",
+            "name": "Awakening",
+            "unlock_level": 1,
+            "desc": "Di bawah 50% HP, memasuki Fase Murka: damage naik tajam."
+          }
+        ],
+        "natural_skill": {
+          "move": "verdant_judgement",
+          "learn_level": 1
+        },
+        "extra_moves": [
+          "primal_crush"
+        ],
+        "custom_slot": 0,
+        "tm_compat": [],
+        "evolution": null,
+        "region": "Verdwall",
+        "habitat": [
+          "verdwall_heart"
+        ],
+        "wild_multiplier": 1.0,
+        "apex_rules": {
+          "win_condition": "weaken_to_threshold",
+          "threshold": 0,
+          "phase_at": 0.5,
+          "note": "TIDAK bisa di-Bond. 'Menaklukkan' = encounter klimaks + resolusi story thread. Memakai ulang sistem battle (fase + Awakening), bukan sistem baru."
+        },
+        "info_sources": [
+          {
+            "source_type": "lore",
+            "detail": "Story thread Verdwall (teaser Luvirel/Merlyon)",
+            "location": "hub",
+            "codex_gain": 100
+          }
+        ],
+        "sprite_paths": {
+          "front": "",
+          "back": "",
+          "icon": ""
+        },
+        "dex_entry": "Bukan makhluk, melainkan kehendak hutan yang mengambil bentuk. Eldergrove tidak ditangkap — ia hanya bisa dipahami, lalu dilewati."
+      }
+    ]
+  },
+  "world": {
+    "_note": "Konten dunia slice: Rank/GP (Bagian 3), Hub + 1 zona Verdwall (Bagian 6), titik interaksi & sumber lore Codex (Bagian 7). Semua data eksternal.",
+    "ranks": [
+      {
+        "rank": 1,
+        "name": "Wanderer",
+        "gp_required": 0,
+        "unlocks": "Start. Verdwall zona awal, 3 starter."
+      },
+      {
+        "rank": 2,
+        "name": "Trailblazer",
+        "gp_required": 80,
+        "unlocks": "Kontrak Hub, Verdwall lebih dalam."
+      },
+      {
+        "rank": 3,
+        "name": "Pathfinder",
+        "gp_required": 200,
+        "unlocks": "Jalur menuju Eldergrove (klimaks)."
+      },
+      {
+        "rank": 4,
+        "name": "Vanguard",
+        "gp_required": 999,
+        "unlocks": "Restricted zone — region lain (coming soon).",
+        "placeholder": true
+      },
+      {
+        "rank": 5,
+        "name": "Sovereign",
+        "gp_required": 999,
+        "unlocks": "Endgame universe (coming soon).",
+        "placeholder": true
+      }
+    ],
+    "gp_rewards": {
+      "story": 60,
+      "contract": 35,
+      "codex_complete": 25,
+      "exploration": 12
+    },
+    "hub": {
+      "name": "Outpost Verdwall",
+      "interactions": [
+        {
+          "id": "npc_tetua",
+          "name": "Tetua Desa Verdwall",
+          "kind": "npc",
+          "gives_lore_for": [
+            "010",
+            "014"
+          ],
+          "text": "“Cappin? Ah, makhluk topi itu. Ia menempel pada siapa pun yang tak memburunya. Brookling lebih pemalu — tunggu kabut, Nak.”"
+        },
+        {
+          "id": "npc_lentera",
+          "name": "Penjaga Lentera",
+          "kind": "npc",
+          "gives_lore_for": [
+            "011"
+          ],
+          "text": "“Glimmoth datang ke cahaya, tapi hanya cahaya jamur tua. Lentera buatanku? Ia mencibir.”"
+        },
+        {
+          "id": "npc_batu",
+          "name": "Tukang Batu Hub",
+          "kind": "npc",
+          "gives_lore_for": [
+            "012"
+          ],
+          "text": "“Batu yang kau pijak bisa jadi tertidur. Pebblion percaya pada kesabaran — dan benci dikejutkan.”"
+        },
+        {
+          "id": "book_hutan",
+          "name": "Buku: Catatan Hutan",
+          "kind": "book",
+          "gives_lore_for": [
+            "010",
+            "011",
+            "013"
+          ],
+          "text": "Lembar-lembar lapuk berisi sketsa penghuni Verdwall: si topi spora, ngengat pendar, dan bayang angin di punggung bukit."
+        },
+        {
+          "id": "book_mata_air",
+          "name": "Buku: Legenda Mata Air",
+          "kind": "book",
+          "gives_lore_for": [
+            "014"
+          ],
+          "text": "“...dan roh mata air hanya menampakkan wujud pada hati yang tak terburu.” — fragmen lontar Merlyon."
+        },
+        {
+          "id": "npc_papan",
+          "name": "Pengembara (Papan Ekspedisi)",
+          "kind": "npc",
+          "gives_lore_for": [
+            "013"
+          ],
+          "text": "“Gustling? Aku kejar seharian, tak pernah kena. Akhirnya kubiarkan — ia malah mengikutiku pulang.”"
+        }
+      ]
+    },
+    "zone": {
+      "id": "verdwall_forest_outer",
+      "name": "Hutan Luar Verdwall",
+      "size": {
+        "w": 16,
+        "h": 11
+      },
+      "exit": {
+        "x": 1,
+        "y": 9
+      },
+      "spawns": [
+        {
+          "cid": "010",
+          "x": 5,
+          "y": 3,
+          "level": 7,
+          "behavior": "graze"
+        },
+        {
+          "cid": "011",
+          "x": 11,
+          "y": 2,
+          "level": 7,
+          "behavior": "wander"
+        },
+        {
+          "cid": "012",
+          "x": 13,
+          "y": 7,
+          "level": 8,
+          "behavior": "still"
+        },
+        {
+          "cid": "013",
+          "x": 8,
+          "y": 8,
+          "level": 7,
+          "behavior": "flee"
+        },
+        {
+          "cid": "014",
+          "x": 3,
+          "y": 6,
+          "level": 9,
+          "behavior": "wander"
+        }
+      ],
+      "lore_points": [
+        {
+          "id": "lp_tua",
+          "x": 5,
+          "y": 2,
+          "name": "Pohon Tua",
+          "for": "010",
+          "source_type": "habitat",
+          "text": "Cappin merumput tenang di bawah pohon ini."
+        },
+        {
+          "id": "lp_rock",
+          "x": 13,
+          "y": 6,
+          "name": "Tepian Batu",
+          "for": "012",
+          "source_type": "habitat",
+          "text": "Sebuah 'batu' bernapas pelan..."
+        },
+        {
+          "id": "lp_mist",
+          "x": 3,
+          "y": 5,
+          "name": "Mata Air Kabut",
+          "for": "014",
+          "source_type": "habitat",
+          "text": "Kabut pagi menggantung; sesuatu berkilau di air."
+        }
+      ]
+    },
+    "missions": [
+      {
+        "id": "m_intro",
+        "type": "story",
+        "name": "Langkah Pertama Seeker",
+        "desc": "Jelajah Hutan Luar, temui satu Crypture liar, dan menangkan pertarungan pertamamu.",
+        "rank_req": 1,
+        "gp": 60,
+        "goal": {
+          "kind": "win_any_battle"
+        }
+      },
+      {
+        "id": "m_codex",
+        "type": "contract",
+        "name": "Kontrak: Dokumentasi Cappin",
+        "desc": "Isi Codex Cappin sampai 100% lalu Bond. Kunjungi NPC & buku di Hub untuk petunjuknya.",
+        "rank_req": 1,
+        "gp": 35,
+        "goal": {
+          "kind": "bond",
+          "cid": "010"
+        }
+      },
+      {
+        "id": "m_eco",
+        "type": "contract",
+        "name": "Kontrak: Sensus Ekosistem",
+        "desc": "Bond 2 Crypture liar berbeda untuk membuktikan kesiapanmu.",
+        "rank_req": 2,
+        "gp": 35,
+        "goal": {
+          "kind": "bond_count",
+          "count": 2
+        }
+      },
+      {
+        "id": "m_apex",
+        "type": "story",
+        "name": "Jantung Verdwall",
+        "desc": "Hadapi Eldergrove, sang Apex. Ia tak bisa di-Bond — lemahkan ia, dan tutup story thread Verdwall.",
+        "rank_req": 3,
+        "gp": 120,
+        "goal": {
+          "kind": "defeat_apex",
+          "cid": "099"
+        }
+      }
+    ]
+  }
+};
+
+</script>
+<script>
+/* ===== src/loader.js ===== */
+/* loader.js — Data Spec 8: data eksternal -> objek runtime.
+   Membangun type chart penuh dari entri non-1.0, mengindeks Crypture & Move,
+   dan menyediakan helper menghitung stat berdasarkan level + growth_curve. */
+(function () {
+  const DB = globalThis.GAME_DATA;
+
+  // ---- Type chart: isi default 1.0 untuk semua pasangan ----
+  const TYPES = DB.types.types.slice();
+  const chart = {};
+  TYPES.concat(["Normal"]).forEach((atk) => {
+    chart[atk] = {};
+    TYPES.concat(["Normal"]).forEach((def) => (chart[atk][def] = 1.0));
+  });
+  for (const atk in DB.types.chart) {
+    for (const def in DB.types.chart[atk]) chart[atk][def] = DB.types.chart[atk][def];
+  }
+
+  function typeMult(moveType, defenderTypes) {
+    if (!moveType || moveType === "Normal") return 1.0;
+    let m = 1.0;
+    for (const t of defenderTypes) m *= chart[moveType] ? (chart[moveType][t] ?? 1.0) : 1.0;
+    return m;
+  }
+
+  // ---- Index ----
+  const MOVES = DB.moves.moves;
+  const SPECIES = {};
+  DB.crypture.crypture.forEach((c) => (SPECIES[c.id] = c));
+
+  function statAt(species, key, level) {
+    const base = species.base_stats[key] || 0;
+    const g = (species.growth_curve && species.growth_curve[key]) || 0;
+    return Math.round(base + g * (level - 1));
+  }
+
+  // Bangun instance Crypture (dipakai battle/world). isWild menerapkan wild_multiplier.
+  let uid = 0;
+  function makeInstance(cid, level, isWild) {
+    const sp = SPECIES[cid];
+    const mult = isWild ? sp.wild_multiplier || 1.0 : 1.0;
+    const s = {};
+    ["hp", "atk", "def", "sp_atk", "sp_def", "speed"].forEach(
+      (k) => (s[k] = Math.round(statAt(sp, k, level) * mult))
+    );
+    const maxHp = Math.round(s.hp * 2.4);
+    const abilities = (sp.abilities || []).filter((a) => a.unlock_level <= level).map((a) => a.id);
+    return {
+      uid: ++uid,
+      cid,
+      name: sp.name,
+      species: sp,
+      level,
+      isWild: !!isWild,
+      types: sp.types,
+      role: sp.role,
+      stats: s,
+      maxHp,
+      hp: maxHp,
+      moves: [MOVES.basic_strike, MOVES[sp.natural_skill.move]]
+        .concat((sp.extra_moves || []).map((m) => MOVES[m]))
+        .filter(Boolean),
+      abilities,
+      status: null, // 'burn' | 'sleep'
+      statStages: { atk: 0, def: 0, sp_atk: 0, sp_def: 0, speed: 0 },
+      taunt: 0,
+      enraged: false,
+    };
+  }
+
+  globalThis.DB = {
+    raw: DB,
+    TYPES,
+    chart,
+    typeMult,
+    MOVES,
+    SPECIES,
+    world: DB.world,
+    colors: DB.types.colors,
+    statAt,
+    makeInstance,
+  };
+
+  // ---- Validasi ringan: Test build-order langkah 1 ----
+  let warns = 0;
+  DB.crypture.crypture.forEach((c) => {
+    c.types.forEach((t) => {
+      if (!TYPES.includes(t)) console.warn("Tipe tak dikenal", t, "pada", c.id), warns++;
+    });
+    if (!MOVES[c.natural_skill.move]) console.warn("natural_skill hilang", c.id), warns++;
+  });
+  console.log(
+    `[loader] ${DB.crypture.crypture.length} Crypture, ${Object.keys(MOVES).length} move, ${TYPES.length} tipe. ${warns} peringatan.`
+  );
+})();
+
+</script>
+<script>
+/* ===== src/codex.js ===== */
+/* codex.js — Bagian 5: HOOK UTAMA. Codex 0..100% per Crypture; Bond rate = Codex %.
+   Sumber: encounter / move_obs / habitat / lore (NPC, buku). info_sources dari data tiap Crypture. */
+(function () {
+  const State = {
+    codex: {}, // cid -> %
+    sourcesUsed: {}, // cid -> Set(detail) agar tiap sumber sekali pakai
+    bonded: [], // daftar instance ter-Bond (koleksi)
+  };
+
+  function ensure(cid) {
+    if (State.codex[cid] == null) State.codex[cid] = 0;
+    if (!State.sourcesUsed[cid]) State.sourcesUsed[cid] = {};
+  }
+
+  function get(cid) {
+    ensure(cid);
+    return State.codex[cid];
+  }
+  function bondRate(cid) {
+    return Math.min(100, Math.round(get(cid)));
+  }
+
+  function add(cid, amt) {
+    ensure(cid);
+    const before = State.codex[cid];
+    State.codex[cid] = Math.min(100, before + amt);
+    return State.codex[cid] - before;
+  }
+
+  // Tambah berdasarkan satu entri info_sources bertipe `type` (sekali pakai per detail).
+  function addFromSource(cid, type, detailKey) {
+    ensure(cid);
+    const sp = DB.SPECIES[cid];
+    const candidates = (sp.info_sources || []).filter((s) => s.source_type === type);
+    let cand = candidates[0];
+    if (detailKey) cand = candidates.find((s) => s.detail === detailKey) || cand;
+    if (!cand) return 0;
+    if (State.sourcesUsed[cid][cand.detail]) return 0; // sudah dipakai
+    State.sourcesUsed[cid][cand.detail] = true;
+    return add(cid, cand.codex_gain);
+  }
+
+  // Sumber lore dari interaksi dunia (NPC/buku) yang menyebut beberapa cid.
+  function addLoreFromInteraction(interaction) {
+    const out = [];
+    (interaction.gives_lore_for || []).forEach((cid) => {
+      const sp = DB.SPECIES[cid];
+      const src = (sp.info_sources || []).find(
+        (s) => s.source_type === "lore" && !State.sourcesUsed[cid][s.detail]
+      );
+      if (src) {
+        State.sourcesUsed[cid][src.detail] = true;
+        const g = add(cid, src.codex_gain);
+        if (g > 0) out.push({ cid, name: sp.name, amt: g, detail: src.detail });
+      }
+    });
+    return out;
+  }
+
+  function isBonded(cid) {
+    return State.bonded.some((b) => b.cid === cid);
+  }
+  function addBonded(instance) {
+    State.bonded.push(instance);
+  }
+
+  function discovered() {
+    return Object.keys(State.codex).filter((c) => State.codex[c] > 0);
+  }
+
+  globalThis.Codex = {
+    State,
+    get,
+    add,
+    bondRate,
+    addFromSource,
+    addLoreFromInteraction,
+    isBonded,
+    addBonded,
+    discovered,
+    ensure,
+  };
+})();
+
+</script>
+<script>
+/* ===== src/battle.js ===== */
+/* battle.js — Bagian 4: Seeker = commander, Crypture = unit. Turn-based, turn queue by Speed.
+   - Party 3 di lapangan sekaligus (3 vs 1). Type multiplier dari data.
+   - HP musuh HIDDEN: band kualitatif + feedback efektivitas.
+   - Aksi Seeker (potion/scan/bond) dengan cooldown — bukan tombol menang.
+   - Eldergrove (Apex): tak bisa di-Bond, win = lemahkan ke ambang, fase Murka di 50%. */
+(function () {
+  const SCALE = 0.62; // tuning damage global (balance pass nanti)
+
+  function stageMult(stage) {
+    return stage >= 0 ? (2 + stage) / 2 : 2 / (2 - stage);
+  }
+  function rng(a, b) {
+    return a + Math.random() * (b - a);
+  }
+
+  function hpBand(frac) {
+    if (frac <= 0) return { label: "Tumbang", cls: "b-out" };
+    if (frac < 0.18) return { label: "Sekarat", cls: "b-crit" };
+    if (frac < 0.4) return { label: "Terluka parah", cls: "b-low" };
+    if (frac < 0.7) return { label: "Terluka", cls: "b-mid" };
+    if (frac < 0.95) return { label: "Masih kuat", cls: "b-ok" };
+    return { label: "Segar", cls: "b-full" };
+  }
+  function effText(m) {
+    if (m === 0) return "Tak berpengaruh...";
+    if (m >= 2) return "Serangan telak!";
+    if (m > 1) return "Cukup efektif.";
+    if (m < 1) return "Kurang efektif...";
+    return "";
+  }
+
+  function calcDamage(attacker, defender, move) {
+    const physical = move.category === "Physical";
+    let A = attacker.stats[physical ? "atk" : "sp_atk"] * stageMult(attacker.statStages[physical ? "atk" : "sp_atk"]);
+    let D = defender.stats[physical ? "def" : "sp_def"] * stageMult(defender.statStages[physical ? "def" : "sp_def"]);
+    // Ability: Kindling (atk +30% saat HP < 1/3)
+    if (attacker.abilities.includes("kindling") && attacker.hp / attacker.maxHp < 1 / 3) A *= 1.3;
+    const stab = attacker.types.includes(move.type) ? 1.5 : 1.0;
+    const tmult = DB.typeMult(move.type, defender.types);
+    let dmg = (((2 * attacker.level) / 5 + 2) * move.power * (A / D)) / 50 + 2;
+    dmg *= stab * tmult * rng(0.85, 1.0) * SCALE;
+    if (attacker.enraged) dmg *= 1.85; // Apex Awakening (Fase Murka)
+    // Damage-reduction abilities
+    if (defender.abilities.includes("bark_skin")) dmg *= 0.85;
+    if (defender.abilities.includes("ancient_bark")) dmg *= 0.8;
+    if (defender.abilities.includes("sturdy_hide") && physical) dmg *= 0.9;
+    return { dmg: Math.max(1, Math.round(dmg)), tmult, stab };
+  }
+
+  function Battle(party, enemy, opts) {
+    opts = opts || {};
+    this.party = party; // array instance pemain (di lapangan)
+    this.enemy = enemy; // satu instance musuh
+    this.isApex = !enemy.species.bondable && enemy.species.apex_rules;
+    this.log = [];
+    this.round = 0;
+    this.queue = [];
+    this.pending = null; // unit pemain yang menunggu perintah
+    this.over = false;
+    this.result = null; // 'win' | 'lose' | 'bond' | 'flee'
+    this.seekerCd = 0; // cooldown aksi pendukung Seeker
+    this.observed = {}; // cid -> set move yang sudah terlihat (untuk Codex)
+    this.bonus = { codex: [] };
+    this.say(`Encounter! ${enemy.name} liar ${this.isApex ? "(APEX — tak bisa di-Bond)" : ""} muncul.`);
+    this.startRound();
+  }
+
+  Battle.prototype.say = function (t) {
+    this.log.push(t);
+  };
+  Battle.prototype.allUnits = function () {
+    return this.party.concat([this.enemy]);
+  };
+  Battle.prototype.alivePlayers = function () {
+    return this.party.filter((u) => u.hp > 0);
+  };
+
+  Battle.prototype.startRound = function () {
+    this.round++;
+    if (this.seekerCd > 0) this.seekerCd--;
+    // bersihkan taunt habis
+    this.allUnits().forEach((u) => {
+      if (u.taunt > 0) u.taunt--;
+    });
+    // Apex Awakening
+    if (this.isApex && !this.enemy.enraged && this.enemy.hp / this.enemy.maxHp <= this.enemy.species.apex_rules.phase_at) {
+      this.enemy.enraged = true;
+      this.say(`🌑 ${this.enemy.name} memasuki FASE MURKA — serangannya menggila!`);
+    }
+    this.queue = this.allUnits()
+      .filter((u) => u.hp > 0)
+      .sort((a, b) => b.stats.speed * stageMult(b.statStages.speed) - a.stats.speed * stageMult(a.statStages.speed));
+    this.advance();
+  };
+
+  // Maju di queue sampai ketemu giliran unit pemain (butuh input) atau ronde habis.
+  Battle.prototype.advance = function () {
+    while (this.queue.length) {
+      const u = this.queue.shift();
+      if (u.hp <= 0) continue;
+      if (u === this.enemy) {
+        this.enemyTurn();
+        if (this.over) return;
+        continue;
+      }
+      // unit pemain: butuh perintah
+      this.pending = u;
+      return;
+    }
+    if (!this.over) this.startRound();
+  };
+
+  // ---- Aksi unit pemain ----
+  Battle.prototype.playerMove = function (move, targetOverride) {
+    const u = this.pending;
+    if (!u) return;
+    this.pending = null;
+    this.useMove(u, move, targetOverride || this.enemy);
+    this.tickBurn(u);
+    this.afterAction();
+  };
+
+  Battle.prototype.useMove = function (actor, move, target) {
+    // start-of-use status
+    if (actor.status === "sleep") {
+      if (Math.random() < 0.35) {
+        actor.status = null;
+        this.say(`${actor.name} terbangun!`);
+      } else {
+        this.say(`${actor.name} tertidur, tak bisa bergerak.`);
+        return;
+      }
+    }
+    // catat observasi move musuh (Codex move_obs)
+    if (actor === this.enemy) this.markObserved(actor.cid, move.id);
+
+    if (Math.random() * 100 > move.accuracy) {
+      this.say(`${actor.name} memakai ${move.name} — meleset!`);
+      return;
+    }
+
+    const eff = move.effect;
+    if (!eff || move.category !== "Status") {
+      // Damage move
+      if (move.power > 0) {
+        const { dmg, tmult } = calcDamage(actor, target, move);
+        target.hp = Math.max(0, target.hp - dmg);
+        const et = effText(tmult);
+        this.say(`${actor.name} → ${move.name}. ${et}`.trim());
+        if (target.hp <= 0) this.say(`${target.name} tumbang!`);
+        // AoE: hantam unit pemain lain dengan skill yang sama (80% power)
+        if (eff && eff.kind === "aoe") {
+          this.party
+            .filter((p) => p.hp > 0 && p !== target)
+            .forEach((p) => {
+              const r = calcDamage(actor, p, Object.assign({}, move, { power: Math.round(move.power * 0.8) }));
+              p.hp = Math.max(0, p.hp - r.dmg);
+              if (p.hp <= 0) this.say(`${p.name} tumbang oleh gelombang!`);
+            });
+          this.say(`Gelombang ${move.name} menyapu seluruh tim!`);
+        }
+      }
+      if (eff && eff.kind !== "aoe") this.applyEffect(actor, target, eff);
+    } else {
+      this.say(`${actor.name} memakai ${move.name}.`);
+      this.applyEffect(actor, target, eff);
+    }
+  };
+
+  Battle.prototype.applyEffect = function (actor, target, eff) {
+    if (!eff) return;
+    const allies = actor.isWild ? [this.enemy] : this.party;
+    switch (eff.kind) {
+      case "buff": {
+        const t = eff.target === "self" ? actor : target;
+        t.statStages[eff.stat] = Math.min(6, t.statStages[eff.stat] + eff.stages);
+        this.say(`${t.name}: ${eff.stat.toUpperCase()} naik.`);
+        if (eff.taunt) {
+          actor.taunt = eff.taunt + 1;
+          this.say(`${actor.name} memancing serangan (taunt)!`);
+        }
+        break;
+      }
+      case "debuff": {
+        if (target.abilities && target.abilities.includes("rooted") && eff.stat === "speed") {
+          this.say(`${target.name} berakar — Speed tak terpengaruh.`);
+          break;
+        }
+        target.statStages[eff.stat] = Math.max(-6, target.statStages[eff.stat] - eff.stages);
+        this.say(`${target.name}: ${eff.stat.toUpperCase()} turun.`);
+        break;
+      }
+      case "status": {
+        if (target.species.apex_rules) {
+          this.say(`Kehendak hutan ${target.name} kebal terhadap status.`);
+          break;
+        }
+        if (Math.random() < (eff.chance || 1) && !target.status) {
+          target.status = eff.status;
+          this.say(`${target.name} terkena ${eff.status === "burn" ? "luka bakar" : eff.status}!`);
+        }
+        break;
+      }
+      case "heal": {
+        let pool;
+        if (eff.target === "self") pool = [actor];
+        else pool = allies.filter((a) => a.hp > 0).sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp);
+        const t = pool[0];
+        if (t) {
+          let amt = Math.round(t.maxHp * eff.amount);
+          if (actor.abilities.includes("tidecaller")) amt = Math.round(amt * 1.15);
+          t.hp = Math.min(t.maxHp, t.hp + amt);
+          this.say(`${t.name} pulih ${amt} HP.`);
+        }
+        if (eff.also) {
+          actor.statStages[eff.also.stat] = Math.min(6, actor.statStages[eff.also.stat] + eff.also.stages);
+        }
+        break;
+      }
+      case "aoe": {
+        // Apex: kena seluruh party (selain target utama yang sudah kena di damage step? di sini full)
+        this.party
+          .filter((p) => p.hp > 0 && p !== target)
+          .forEach((p) => {
+            const { dmg } = calcDamage(actor, p, { category: "Special", power: 30, type: "Nature" });
+            p.hp = Math.max(0, p.hp - dmg);
+            if (p.hp <= 0) this.say(`${p.name} tumbang oleh gelombang!`);
+          });
+        this.say(`Gelombang ${actor.name} menyapu seluruh tim!`);
+        break;
+      }
+    }
+  };
+
+  // ---- Aksi Seeker ----
+  Battle.prototype.seekerAction = function (kind, target) {
+    if (this.seekerCd > 0 && kind !== "bond") return false;
+    const u = this.pending;
+    this.pending = null;
+    if (kind === "potion") {
+      const t = target || this.alivePlayers().sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
+      const amt = Math.round(t.maxHp * 0.45);
+      t.hp = Math.min(t.maxHp, t.hp + amt);
+      this.say(`🧪 Seeker memberi potion: ${t.name} pulih ${amt} HP.`);
+      this.seekerCd = 2;
+    } else if (kind === "scan") {
+      this.say(`🔍 Seeker mengamati ${this.enemy.name}: ${hpBand(this.enemy.hp / this.enemy.maxHp).label}, tipe ${this.enemy.types.join("/")}.`);
+      this.markCodexBonus(this.enemy.cid, 8, "Pindai medan");
+      this.seekerCd = 1;
+    } else if (kind === "bond") {
+      return this.attemptBond();
+    }
+    this.afterAction();
+    return true;
+  };
+
+  Battle.prototype.attemptBond = function () {
+    if (this.isApex) {
+      this.pending = this.pending || null;
+      this.say(`✋ ${this.enemy.name} adalah Apex — ia tak bisa di-Bond, hanya dipahami lalu dilewati.`);
+      this.afterAction();
+      return false;
+    }
+    const rate = globalThis.Codex.bondRate(this.enemy.cid); // 0..100
+    const roll = Math.random() * 100;
+    this.say(`🤝 Attempt Bond ${this.enemy.name} — peluang ${rate}% (Codex).`);
+    if (roll <= rate) {
+      this.over = true;
+      this.result = "bond";
+      this.bondedInstance = this.enemy;
+      this.say(`✨ BOND berhasil! ${this.enemy.name} kini berjalan bersamamu.`);
+      return true;
+    } else {
+      this.say(`${this.enemy.name} belum cukup percaya... Bond gagal.`);
+      this.afterAction();
+      return false;
+    }
+  };
+
+  // ---- AI musuh ----
+  Battle.prototype.enemyTurn = function () {
+    const e = this.enemy;
+    if (e.hp <= 0) return;
+    // target: unit dgn taunt, lalu HP terendah, lalu acak
+    const players = this.alivePlayers();
+    let target = players.find((p) => p.taunt > 0) || players.slice().sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
+    // pilih move
+    const skills = e.moves.slice(1); // semua skill non-basic
+    let move = e.moves[0];
+    if (skills.length) {
+      if (this.isApex) {
+        // Saat murka: utamakan serangan netral yang tak ter-resist (primal_crush); selain itu putar skill.
+        const crush = skills.find((m) => m.id === "primal_crush");
+        if (e.enraged && crush && Math.random() < 0.6) move = crush;
+        else move = Math.random() < 0.85 ? skills[Math.floor(Math.random() * skills.length)] : e.moves[0];
+      } else {
+        move = Math.random() < 0.55 ? skills[0] : e.moves[0];
+      }
+    }
+    this.useMove(e, move, target);
+    this.tickBurn(e);
+    this.checkEnd();
+  };
+
+  Battle.prototype.afterAction = function () {
+    if (this.checkEnd()) return;
+    this.advance();
+  };
+
+  // status tiap akhir aksi unit (burn) — diterapkan saat unit selesai bergerak
+  Battle.prototype.tickBurn = function (u) {
+    if (u.status === "burn" && u.hp > 0) {
+      const d = Math.max(1, Math.round(u.maxHp * 0.06));
+      u.hp = Math.max(0, u.hp - d);
+      this.say(`${u.name} tersengat luka bakar (-${d}).`);
+    }
+  };
+
+  Battle.prototype.checkEnd = function () {
+    // burn tick di akhir setiap resolusi (sederhana: cek semua)
+    if (this.enemy.hp <= 0) {
+      this.over = true;
+      this.result = "win";
+      this.say(`🏆 ${this.enemy.name} dikalahkan!`);
+      return true;
+    }
+    if (this.alivePlayers().length === 0) {
+      this.over = true;
+      this.result = "lose";
+      this.say(`💤 Seluruh tim tumbang. Seeker mundur ke Hub.`);
+      return true;
+    }
+    return false;
+  };
+
+  // ---- Codex observasi ----
+  Battle.prototype.markObserved = function (cid, moveId) {
+    this.observed[cid] = this.observed[cid] || {};
+    if (!this.observed[cid][moveId]) {
+      this.observed[cid][moveId] = true;
+      const gained = globalThis.Codex.addFromSource(cid, "move_obs");
+      if (gained > 0) {
+        this.say(`📖 Codex ${this.enemy.name}: +${gained}% (melihat skill baru).`);
+        this.bonus.codex.push({ cid, amt: gained });
+      }
+    }
+  };
+  Battle.prototype.markCodexBonus = function (cid, amt, why) {
+    const g = globalThis.Codex.add(cid, amt);
+    if (g > 0) this.say(`📖 Codex ${this.enemy.name}: +${g}% (${why}).`);
+  };
+
+  Battle.prototype.flee = function () {
+    this.pending = null;
+    let chance = 0.5 + 0.1 * this.alivePlayers().filter((p) => p.abilities.includes("soft_steps")).length;
+    if (Math.random() < chance) {
+      this.over = true;
+      this.result = "flee";
+      this.say("🏃 Berhasil melarikan diri.");
+    } else {
+      this.say("Gagal lari!");
+      this.afterAction();
+    }
+  };
+
+  globalThis.BattleEngine = { Battle, hpBand, effText, calcDamage };
+})();
+
+</script>
+<script>
+/* ===== src/world.js ===== */
+/* world.js — Bagian 2/3/6/7: state game, core loop, Rank/GP, misi, hub, eksplorasi zona.
+   Tanpa DOM (logika murni) — UI memanggilnya. */
+(function () {
+  const W = DB.world;
+
+  const Game = {
+    gp: 0,
+    rank: 1,
+    party: [],
+    flags: { battlesWon: 0, bondCount: 0 },
+    missions: {}, // id -> {state:'available'|'active'|'done'}
+    log: [],
+  };
+
+  function rankInfo(r) {
+    return W.ranks.find((x) => x.rank === r);
+  }
+  function nextRank() {
+    return W.ranks.find((x) => x.rank === Game.rank + 1);
+  }
+
+  function init() {
+    // 3 starter auto-Bond lewat story (Bagian 5)
+    Game.party = [
+      DB.makeInstance("001", 8, false), // Verduck
+      DB.makeInstance("003", 8, false), // Pyruff
+      DB.makeInstance("005", 8, false), // Ripplet
+    ];
+    Game.party.forEach((p) => {
+      Codex.add(p.cid, 100);
+      Codex.addBonded(p);
+    });
+    W.missions.forEach((m) => (Game.missions[m.id] = m.rank_req <= Game.rank ? "available" : "locked"));
+    Game.missions["m_intro"] = "active";
+  }
+
+  function addGP(amount, why) {
+    Game.gp += amount;
+    Game.log.push(`+${amount} GP — ${why}`);
+    checkRankUp();
+  }
+
+  function checkRankUp() {
+    let leveled = null;
+    let nr = nextRank();
+    while (nr && !nr.placeholder && Game.gp >= nr.gp_required) {
+      Game.rank = nr.rank;
+      leveled = nr;
+      // buka misi baru
+      W.missions.forEach((m) => {
+        if (Game.missions[m.id] === "locked" && m.rank_req <= Game.rank) Game.missions[m.id] = "available";
+      });
+      nr = nextRank();
+    }
+    return leveled;
+  }
+
+  // dipanggil setelah event untuk update progres misi & beri GP
+  function onBattleResult(battle) {
+    const events = [];
+    if (battle.result === "win" || battle.result === "bond") {
+      Game.flags.battlesWon++;
+    }
+    if (battle.result === "bond") {
+      Game.flags.bondCount++;
+      const inst = battle.bondedInstance;
+      // versi ter-Bond lebih jinak (bukan wild_multiplier) — buat ulang non-wild
+      const tamed = DB.makeInstance(inst.cid, inst.level, false);
+      Codex.addBonded(tamed);
+      events.push(`${inst.name} bergabung ke koleksi.`);
+      // Codex 100% memberi GP dokumentasi
+      if (Codex.get(inst.cid) >= 100) addGP(W.gp_rewards.codex_complete, `Codex ${inst.name} 100%`);
+    }
+    // cek goal misi
+    W.missions.forEach((m) => {
+      if (Game.missions[m.id] !== "active") return;
+      const g = m.goal;
+      let done = false;
+      if (g.kind === "win_any_battle" && (battle.result === "win" || battle.result === "bond")) done = true;
+      if (g.kind === "bond" && battle.result === "bond" && battle.bondedInstance.cid === g.cid) done = true;
+      if (g.kind === "bond_count" && Game.flags.bondCount >= g.count) done = true;
+      if (g.kind === "defeat_apex" && battle.result === "win" && battle.enemy.cid === g.cid) done = true;
+      if (done) {
+        Game.missions[m.id] = "done";
+        addGP(m.gp, `Misi: ${m.name}`);
+        events.push(`✅ Misi selesai: ${m.name} (+${m.gp} GP)`);
+      }
+    });
+    return events;
+  }
+
+  function acceptMission(id) {
+    if (Game.missions[id] === "available") Game.missions[id] = "active";
+  }
+
+  function activeMissions() {
+    return W.missions.filter((m) => Game.missions[m.id] === "active");
+  }
+  function availableMissions() {
+    return W.missions.filter((m) => Game.missions[m.id] === "available");
+  }
+
+  function apexUnlocked() {
+    return Game.rank >= 3;
+  }
+
+  globalThis.Game = Object.assign(Game, {
+    init,
+    addGP,
+    onBattleResult,
+    acceptMission,
+    activeMissions,
+    availableMissions,
+    rankInfo,
+    nextRank,
+    apexUnlocked,
+    W,
+  });
+})();
+
+</script>
+<script>
+/* ===== src/ui.js ===== */
+/* ui.js — lapisan presentasi vertical slice. Memanggil Game/Battle/Codex.
+   Screen: intro -> hub -> zona (canvas) -> battle -> report -> codex. */
+(function () {
+  const $ = (s) => document.querySelector(s);
+  const el = (h) => {
+    const d = document.createElement("div");
+    d.innerHTML = h.trim();
+    return d.firstChild;
+  };
+  const C = DB.colors;
+  function typeChip(t) {
+    return `<span class="type" style="background:${C[t] || "#999"}">${t}</span>`;
+  }
+  function blob(inst) {
+    const t = inst.types[0];
+    return `<div class="blob" style="background:${C[t]}">${inst.name[0]}</div>`;
+  }
+  function speciesBlob(sp) {
+    const t = sp.types[0];
+    return `<div class="blob" style="background:${C[t]}">${sp.name[0]}</div>`;
+  }
+
+  function topbar() {
+    const ri = Game.rankInfo(Game.rank);
+    $("#t-rank").innerHTML = `Rank ${Game.rank} · ${ri.name}`;
+    $("#t-gp").innerHTML = `GP <b>${Game.gp}</b>`;
+    const nr = Game.nextRank();
+    $("#t-gp").title = nr && !nr.placeholder ? `Menuju ${nr.name}: ${Game.gp}/${nr.gp_required} GP` : "Rank maks slice";
+  }
+  function setLoc(s) {
+    $("#t-loc").textContent = s;
+  }
+  function screen(html) {
+    $("#screen").innerHTML = "";
+    $("#screen").appendChild(typeof html === "string" ? el(`<div>${html}</div>`) : html);
+    topbar();
+  }
+
+  // ---------------- INTRO ----------------
+  function intro() {
+    setLoc("Prolog");
+    screen(`
+      <h2>Seorang Seeker, di tepi Verdwall</h2>
+      <p class="lead">Kamu bukan pemburu. Kamu tak menangkap makhluk dengan melempar bola —
+      kamu <b>memahami</b> mereka hingga mereka mau ber-<b>Bond</b> denganmu. Guild menyerahkan tiga sekutu pertamamu.
+      Dunia tak terbentang otomatis; ia terbuka karena reputasimu naik.</p>
+      <div class="grid" style="grid-template-columns:1fr 1fr 1fr">
+        ${["001", "003", "005"].map((c) => {
+          const sp = DB.SPECIES[c];
+          return `<div class="card"><div class="unit">${speciesBlob(sp)}<div class="meta">
+            <div class="name">${sp.name}</div>
+            <div>${sp.types.map(typeChip).join(" ")}</div>
+            <div class="role">peran: ${sp.role}</div></div></div>
+            <div class="small" style="margin-top:8px">${sp.dex_entry}</div></div>`;
+        }).join("")}
+      </div>
+      <p class="hint">Tiga starter di-Bond otomatis lewat story (Bagian 5). Codex mereka = 100%.</p>
+      <div class="row" style="margin-top:14px"><button class="primary" id="go">Masuk ke Outpost Verdwall →</button></div>
+    `);
+    $("#go").onclick = hub;
+  }
+
+  // ---------------- HUB ----------------
+  function hub() {
+    setLoc("Outpost Verdwall (Hub)");
+    const active = Game.activeMissions();
+    const avail = Game.availableMissions();
+    const wrap = el(`<div></div>`);
+    wrap.innerHTML = `
+      <h2>Outpost Verdwall</h2>
+      <p class="lead">Hub para Seeker. Dari sini kamu memilih ekspedisi, menggali petunjuk Codex dari penduduk,
+      lalu berangkat ke hutan. Pulang, lapor, dapat Guild Points, naik Rank.</p>
+      <div class="grid" style="grid-template-columns:1fr 1fr">
+        <div class="card">
+          <h3>Tim Aktif (maks 3)</h3>
+          <div id="party-mini"></div>
+          <div class="row" style="margin-top:8px">
+            <button id="b-team">Kelola Tim</button>
+            <button id="b-codex">Buka Codex</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Papan Ekspedisi</h3>
+          <div id="missions"></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <h3>Penduduk & Arsip Hub — sumber lore Codex</h3>
+        <p class="small">Ngobrol & periksa buku mengisi Codex Crypture langka (Bagian 5: eksplorasi sosial = progres mekanis).</p>
+        <div id="hub-int" class="row"></div>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button class="primary" id="b-zone">⛺ Berangkat ke Hutan Luar Verdwall →</button>
+      </div>
+    `;
+    // party mini
+    const pm = wrap.querySelector("#party-mini");
+    Game.party.forEach((p) => pm.appendChild(unitCard(p, false)));
+    // missions
+    const mm = wrap.querySelector("#missions");
+    if (!active.length && !avail.length) mm.innerHTML = `<p class="small">Tidak ada kontrak tersedia.</p>`;
+    active.forEach((m) => mm.appendChild(missionRow(m, "active")));
+    avail.forEach((m) => mm.appendChild(missionRow(m, "available")));
+    // hub interactions
+    const hi = wrap.querySelector("#hub-int");
+    DB.world.hub.interactions.forEach((it) => {
+      const b = el(`<button>${it.kind === "book" ? "📖" : "💬"} ${it.name}</button>`);
+      b.onclick = () => interact(it);
+      hi.appendChild(b);
+    });
+    screen(wrap);
+    wrap.querySelector("#b-zone").onclick = () => enterZone();
+    wrap.querySelector("#b-codex").onclick = () => codexScreen(hub);
+    wrap.querySelector("#b-team").onclick = () => teamScreen();
+    wrap.querySelector("#b-zone").disabled = false;
+  }
+
+  function missionRow(m, state) {
+    const tag = m.type === "story" ? "STORY" : "KONTRAK";
+    const row = el(`<div class="card" style="margin-bottom:8px;background:#23392e">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="tag">${tag}</span><b>${m.name}</b>
+        <span class="spacer" style="flex:1"></span>
+        <span class="tag">+${m.gp} GP</span>
+      </div>
+      <div class="small" style="margin-top:4px">${m.desc}</div>
+    </div>`);
+    if (state === "available") {
+      const b = el(`<button style="margin-top:8px">Terima kontrak</button>`);
+      b.onclick = () => {
+        Game.acceptMission(m.id);
+        hub();
+      };
+      row.appendChild(b);
+    } else {
+      row.appendChild(el(`<div class="small" style="margin-top:6px;color:#9ed27f">● Aktif — selesaikan di ekspedisi</div>`));
+    }
+    return row;
+  }
+
+  function interact(it) {
+    const events = Codex.addLoreFromInteraction(it);
+    let extra = events.length
+      ? events.map((e) => `📖 Codex <b>${e.name}</b> +${e.amt}% — <span class="small">${e.detail}</span>`).join("<br>")
+      : `<span class="small">(Tidak ada entri Codex baru dari sumber ini — mungkin sudah kamu catat.)</span>`;
+    modal(`${it.kind === "book" ? "📖" : "💬"} ${it.name}`, `<p class="lead">“${it.text}”</p>${extra}`, hub);
+  }
+
+  function modal(title, body, onClose) {
+    const m = el(`<div>
+      <h2>${title}</h2>
+      <div class="card">${body}</div>
+      <div class="row" style="margin-top:14px"><button class="primary" id="mc">Kembali</button></div>
+    </div>`);
+    screen(m);
+    m.querySelector("#mc").onclick = onClose;
+  }
+
+  // ---------------- UNIT CARD ----------------
+  function unitCard(inst, hideHp) {
+    const frac = inst.hp / inst.maxHp;
+    const c = el(`<div class="card" style="margin-bottom:8px">
+      <div class="unit">${blob(inst)}
+        <div class="meta">
+          <div class="name">${inst.name} <span class="small">Lv${inst.level}</span> ${inst.types.map(typeChip).join(" ")}</div>
+          <div class="bar ${frac < 0.4 ? "low" : ""}"><i style="width:${Math.max(0, frac * 100)}%"></i></div>
+          <div class="small">${hideHp ? "" : `HP ${Math.max(0, Math.round(inst.hp))}/${inst.maxHp}`} ${inst.status ? "· " + (inst.status === "burn" ? "🔥luka bakar" : inst.status) : ""}</div>
+        </div>
+      </div>
+    </div>`);
+    return c;
+  }
+
+  // ---------------- TEAM ----------------
+  function teamScreen() {
+    setLoc("Hub · Kelola Tim");
+    const coll = Codex.State.bonded;
+    const wrap = el(`<div><h2>Kelola Tim</h2>
+      <p class="lead">Tim hanya bisa diatur di Hub, maksimal 3 (Bagian 7 LOCKED). Party = komitmen.</p>
+      <h3>Tim Aktif</h3><div id="act" class="grid" style="grid-template-columns:1fr 1fr 1fr"></div>
+      <h3 style="margin-top:12px">Koleksi (ter-Bond)</h3><div id="coll" class="grid" style="grid-template-columns:1fr 1fr 1fr"></div>
+      <div class="row" style="margin-top:14px"><button class="primary" id="back">← Kembali ke Hub</button></div></div>`);
+    function refresh() {
+      const a = wrap.querySelector("#act");
+      a.innerHTML = "";
+      Game.party.forEach((p, i) => {
+        const card = unitCard(p, false);
+        const rm = el(`<button style="width:100%;margin-top:6px">Cadangkan</button>`);
+        rm.disabled = Game.party.length <= 1;
+        rm.onclick = () => {
+          Game.party.splice(i, 1);
+          refresh();
+        };
+        card.appendChild(rm);
+        a.appendChild(card);
+      });
+      const cc = wrap.querySelector("#coll");
+      cc.innerHTML = "";
+      coll.forEach((inst) => {
+        const inParty = Game.party.includes(inst);
+        const card = unitCard(inst, false);
+        const add = el(`<button style="width:100%;margin-top:6px">${inParty ? "Di tim" : "Masukkan tim"}</button>`);
+        add.disabled = inParty || Game.party.length >= 3;
+        add.onclick = () => {
+          if (Game.party.length < 3) {
+            inst.hp = inst.maxHp;
+            Game.party.push(inst);
+            refresh();
+          }
+        };
+        card.appendChild(add);
+        cc.appendChild(card);
+      });
+    }
+    screen(wrap);
+    refresh();
+    wrap.querySelector("#back").onclick = hub;
+  }
+
+  // ---------------- CODEX ----------------
+  function codexScreen(back) {
+    setLoc("Codex");
+    const wrap = el(`<div><h2>Codex — Field Guide</h2>
+      <p class="lead">Isi Codex sebuah Crypture sampai 100% = Bond dijamin (Bagian 5, hook utama).
+      Sumber tersebar di dunia: encounter, observasi skill, habitat, dan lore (NPC/buku).</p>
+      <div id="list"></div>
+      <div class="row" style="margin-top:14px"><button class="primary" id="back">← Kembali</button></div></div>`);
+    const list = wrap.querySelector("#list");
+    DB.raw.crypture.crypture.forEach((sp) => {
+      const pct = Codex.get(sp.id);
+      if (pct <= 0 && !Codex.isBonded(sp.id) && sp.rarity !== "Starter") {
+        // belum ketemu: tampil samar
+        list.appendChild(el(`<div class="card" style="margin-bottom:8px;opacity:.5">
+          <div class="unit"><div class="blob" style="background:#33513f">?</div>
+          <div class="meta"><div class="name">#${sp.id} · ???</div><div class="small">Belum terdokumentasi</div></div></div></div>`));
+        return;
+      }
+      const bonded = Codex.isBonded(sp.id);
+      const card = el(`<div class="card" style="margin-bottom:8px">
+        <div class="unit">${speciesBlob(sp)}
+          <div class="meta">
+            <div class="name">#${sp.id} · ${sp.name} ${sp.types.map(typeChip).join(" ")}
+              ${bonded ? '<span class="tag" style="color:#9ed27f">BONDED</span>' : ""}
+              ${!sp.bondable ? '<span class="tag" style="color:#eaa05f">APEX · no bond</span>' : ""}</div>
+            <div class="bar codex"><i style="width:${pct}%"></i></div>
+            <div class="small">Codex ${pct}% · peran ${sp.role} · ${sp.rarity}</div>
+          </div></div>
+        <div class="small" style="margin-top:8px">${sp.dex_entry}</div>
+        <div style="margin-top:6px">${sources(sp)}</div>
+      </div>`);
+      list.appendChild(card);
+    });
+    screen(wrap);
+    wrap.querySelector("#back").onclick = back || hub;
+  }
+  function sources(sp) {
+    const used = Codex.State.sourcesUsed[sp.id] || {};
+    return (sp.info_sources || [])
+      .map((s) => {
+        const done = used[s.detail];
+        return `<div class="src ${done ? "done" : ""}">${done ? "✔" : "○"} [${s.source_type}] ${s.detail} <span style="opacity:.7">(+${s.codex_gain}%)</span></div>`;
+      })
+      .join("");
+  }
+
+  // ---------------- ZONE (eksplorasi canvas) ----------------
+  const TILE = 48;
+  let zone = null;
+  function enterZone() {
+    setLoc("Hutan Luar Verdwall");
+    const Z = DB.world.zone;
+    zone = {
+      data: Z,
+      player: { x: 7, y: 9 },
+      creatures: Z.spawns.map((s) => ({ ...s, alive: true })),
+      lore: Z.lore_points.map((l) => ({ ...l, used: false })),
+      msg: "Gunakan WASD / panah untuk bergerak. Dekati Crypture untuk encounter. Capai pintu keluar untuk pulang.",
+    };
+    const wrap = el(`<div>
+      <h2>Hutan Luar Verdwall</h2>
+      <canvas id="zc" width="${Z.size.w * TILE}" height="${Z.size.h * TILE}"></canvas>
+      <p class="small" id="zmsg" style="margin-top:8px"></p>
+      <div class="row"><button id="leave">↩ Paksa pulang ke Hub</button>
+      <span class="hint">Crypture liar lebih kuat dari versi ter-Bond (wild_multiplier).</span></div>
+    </div>`);
+    screen(wrap);
+    wrap.querySelector("#leave").onclick = () => endExpedition("Kamu memilih pulang.");
+    drawZone();
+    bindKeys();
+  }
+
+  function bindKeys() {
+    document.onkeydown = (e) => {
+      if (!zone) return;
+      let dx = 0,
+        dy = 0;
+      const k = e.key.toLowerCase();
+      if (k === "arrowup" || k === "w") dy = -1;
+      else if (k === "arrowdown" || k === "s") dy = 1;
+      else if (k === "arrowleft" || k === "a") dx = -1;
+      else if (k === "arrowright" || k === "d") dx = 1;
+      else return;
+      e.preventDefault();
+      movePlayer(dx, dy);
+    };
+  }
+
+  function movePlayer(dx, dy) {
+    const Z = zone.data;
+    const nx = Math.max(0, Math.min(Z.size.w - 1, zone.player.x + dx));
+    const ny = Math.max(0, Math.min(Z.size.h - 1, zone.player.y + dy));
+    zone.player.x = nx;
+    zone.player.y = ny;
+    // wild behavior: flee creature steps away occasionally
+    zone.creatures.forEach((c) => {
+      if (!c.alive) return;
+      if (c.behavior === "flee" && Math.abs(c.x - nx) + Math.abs(c.y - ny) <= 3 && Math.random() < 0.6) {
+        c.x = Math.max(0, Math.min(Z.size.w - 1, c.x + (c.x < nx ? -1 : 1)));
+      } else if (c.behavior === "wander" && Math.random() < 0.3) {
+        c.x = Math.max(0, Math.min(Z.size.w - 1, c.x + (Math.random() < 0.5 ? -1 : 1)));
+      }
+    });
+    // exit?
+    if (nx === Z.exit.x && ny === Z.exit.y) return endExpedition("Kamu kembali ke Hub melalui jalur keluar.");
+    // lore point?
+    const lp = zone.lore.find((l) => !l.used && l.x === nx && l.y === ny);
+    if (lp) {
+      lp.used = true;
+      const g = Codex.addFromSource(lp.for, lp.source_type, undefined);
+      const sp = DB.SPECIES[lp.for];
+      zone.msg = `🌿 ${lp.name}: ${lp.text} ${g > 0 ? `Codex ${sp.name} +${g}%.` : ""}`;
+    }
+    // adjacent creature -> encounter
+    const enc = zone.creatures.find((c) => c.alive && Math.abs(c.x - nx) + Math.abs(c.y - ny) === 0);
+    if (enc) {
+      startEncounter(enc);
+      return;
+    }
+    drawZone();
+  }
+
+  function drawZone() {
+    const Z = zone.data;
+    const cv = $("#zc");
+    if (!cv) return;
+    const g = cv.getContext("2d");
+    // ground
+    for (let y = 0; y < Z.size.h; y++)
+      for (let x = 0; x < Z.size.w; x++) {
+        g.fillStyle = (x + y) % 2 ? "#274a2f" : "#244328";
+        g.fillRect(x * TILE, y * TILE, TILE, TILE);
+      }
+    // scattered trees (decor, deterministic)
+    g.globalAlpha = 0.5;
+    for (let i = 0; i < 26; i++) {
+      const x = (i * 7) % Z.size.w,
+        y = (i * 5 + 2) % Z.size.h;
+      if ((x === Z.exit.x && y === Z.exit.y)) continue;
+      g.font = "26px serif";
+      g.fillText("🌲", x * TILE + 8, y * TILE + 34);
+    }
+    g.globalAlpha = 1;
+    // exit
+    g.font = "30px serif";
+    g.fillText("🚪", Z.exit.x * TILE + 8, Z.exit.y * TILE + 36);
+    // lore points
+    zone.lore.forEach((l) => {
+      if (l.used) return;
+      g.font = "24px serif";
+      g.fillText("✨", l.x * TILE + 12, l.y * TILE + 34);
+    });
+    // creatures
+    zone.creatures.forEach((c) => {
+      if (!c.alive) return;
+      const sp = DB.SPECIES[c.cid];
+      g.fillStyle = C[sp.types[0]];
+      g.beginPath();
+      g.arc(c.x * TILE + TILE / 2, c.y * TILE + TILE / 2, 15, 0, 7);
+      g.fill();
+      g.fillStyle = "#11201a";
+      g.font = "bold 16px sans-serif";
+      g.textAlign = "center";
+      g.fillText(sp.name[0], c.x * TILE + TILE / 2, c.y * TILE + TILE / 2 + 6);
+      g.textAlign = "left";
+    });
+    // player
+    const p = zone.player;
+    g.font = "30px serif";
+    g.fillText("🧭", p.x * TILE + 8, p.y * TILE + 36);
+    const m = $("#zmsg");
+    if (m) m.textContent = zone.msg;
+  }
+
+  function startEncounter(spawn) {
+    const sp = DB.SPECIES[spawn.cid];
+    const isApex = !sp.bondable;
+    const enemy = DB.makeInstance(spawn.cid, spawn.level, !isApex);
+    // encounter source codex
+    const g = Codex.addFromSource(spawn.cid, "encounter");
+    document.onkeydown = null;
+    startBattle(enemy, () => {
+      // setelah battle, kembali ke zona jika menang/lari, ke report jika kalah/bond
+    }, spawn);
+  }
+
+  // ---------------- BATTLE ----------------
+  let B = null;
+  let battleDone = null;
+  let battleSpawn = null;
+  function startBattle(enemy, onDone, spawn) {
+    battleSpawn = spawn;
+    // pastikan party fresh? tidak — bawa kondisi HP saat ini
+    B = new BattleEngine.Battle(Game.party, enemy);
+    battleDone = onDone;
+    renderBattle();
+  }
+
+  function renderBattle() {
+    setLoc("Pertarungan");
+    const enemy = B.enemy;
+    const band = BattleEngine.hpBand(enemy.hp / enemy.maxHp);
+    const wrap = el(`<div>
+      <h2>Pertarungan — ${enemy.name}${B.isApex ? " <span class='tag' style='color:#eaa05f'>APEX</span>" : " <span class='tag'>liar</span>"}</h2>
+      <div class="grid" style="grid-template-columns:1.1fr .9fr;align-items:start">
+        <div>
+          <h3>Lawan (HP tersembunyi)</h3>
+          <div class="card">
+            <div class="unit">${blob(enemy)}<div class="meta">
+              <div class="name">${enemy.name} <span class="small">Lv${enemy.level}</span> ${enemy.types.map(typeChip).join(" ")} ${enemy.enraged ? "<span class='tag' style='color:#e0683b'>🌑 MURKA</span>" : ""}</div>
+              <div class="bar ${enemy.hp / enemy.maxHp < 0.4 ? "low" : ""}"><i style="width:${(enemy.hp / enemy.maxHp) * 100}%"></i></div>
+              <div class="small">Kondisi: <span class="band ${band.cls}">${band.label}</span> ${enemy.status ? "· 🔥" : ""}
+              ${B.isApex ? "" : `· Codex ${Codex.get(enemy.cid)}% → Bond ${Codex.bondRate(enemy.cid)}%`}</div>
+            </div></div>
+            <div class="small" style="margin-top:6px">${enemy.species.dex_entry}</div>
+          </div>
+          <h3 style="margin-top:10px">Tim Seeker</h3>
+          <div id="party"></div>
+        </div>
+        <div>
+          <h3>Perintah</h3>
+          <div id="cmd"></div>
+          <h3 style="margin-top:10px">Catatan Pertempuran</h3>
+          <div id="log"></div>
+        </div>
+      </div>
+    </div>`);
+    const pc = wrap.querySelector("#party");
+    Game.party.forEach((p) => {
+      const card = unitCard(p, false);
+      if (B.pending === p) card.style.outline = "2px solid var(--gold)";
+      if (p.hp <= 0) card.style.opacity = ".45";
+      pc.appendChild(card);
+    });
+    screen(wrap);
+    renderLog();
+    renderCmd();
+  }
+
+  function renderLog() {
+    const lg = $("#log");
+    if (!lg) return;
+    lg.innerHTML = B.log.map((l) => `<div>${l}</div>`).join("");
+    lg.scrollTop = lg.scrollHeight;
+  }
+
+  function renderCmd() {
+    const cmd = $("#cmd");
+    if (!cmd) return;
+    if (B.over) {
+      cmd.innerHTML = "";
+      const b = el(`<button class="primary" style="width:100%">Lanjut →</button>`);
+      b.onclick = () => resolveBattle();
+      cmd.appendChild(b);
+      return;
+    }
+    const u = B.pending;
+    if (!u) {
+      cmd.innerHTML = `<p class="small">…</p>`;
+      setTimeout(() => {
+        renderBattle();
+      }, 250);
+      return;
+    }
+    cmd.innerHTML = `<div class="small" style="margin-bottom:6px">Giliran: <b>${u.name}</b> (${u.role})</div>`;
+    const menu = el(`<div class="menu"></div>`);
+    // skills
+    u.moves.forEach((mv) => {
+      const dmgHint = mv.power > 0 ? "" : "·status";
+      const tip = mv.type !== "Normal" ? typeChip(mv.type) : `<span class="type" style="background:#c9c2b2">basic</span>`;
+      const b = el(`<button title="${mv.desc}">${mv.name} ${tip}</button>`);
+      b.onclick = () => {
+        B.playerMove(mv);
+        afterPlayer();
+      };
+      menu.appendChild(b);
+    });
+    // seeker actions
+    const pot = el(`<button class="warm" ${B.seekerCd > 0 ? "disabled" : ""}>🧪 Potion${B.seekerCd > 0 ? ` (cd ${B.seekerCd})` : ""}</button>`);
+    pot.onclick = () => {
+      B.seekerAction("potion");
+      afterPlayer();
+    };
+    menu.appendChild(pot);
+    const scan = el(`<button ${B.seekerCd > 0 ? "disabled" : ""}>🔍 Scan</button>`);
+    scan.onclick = () => {
+      B.seekerAction("scan");
+      afterPlayer();
+    };
+    menu.appendChild(scan);
+    if (!B.isApex) {
+      const bond = el(`<button class="primary">🤝 Attempt Bond (${Codex.bondRate(B.enemy.cid)}%)</button>`);
+      bond.onclick = () => {
+        B.seekerAction("bond");
+        afterPlayer();
+      };
+      menu.appendChild(bond);
+    }
+    const flee = el(`<button>🏃 Lari</button>`);
+    flee.onclick = () => {
+      B.flee();
+      afterPlayer();
+    };
+    menu.appendChild(flee);
+    cmd.appendChild(menu);
+    const hint = el(`<p class="hint">Aksi Seeker punya cooldown — bukan tombol menang. Tank menahan, support menyembuhkan, attacker memukul: nilai ada di kombinasi tim.</p>`);
+    cmd.appendChild(hint);
+  }
+
+  function afterPlayer() {
+    renderBattle();
+  }
+
+  function resolveBattle() {
+    const events = Game.onBattleResult(B);
+    // tandai creature di zona
+    if (battleSpawn && (B.result === "win" || B.result === "bond")) {
+      const c = zone && zone.creatures.find((x) => x === battleSpawn || (x.cid === battleSpawn.cid && x.x === battleSpawn.x && x.y === battleSpawn.y));
+      if (c) c.alive = false;
+    }
+    const res = B.result;
+    const enemyName = B.enemy.name;
+    const bonusEvents = events;
+    if (res === "lose") return endExpedition("Tim tumbang — kamu dipulihkan di Hub.", bonusEvents);
+    // setelah menang/bond/lari: jika ini Apex (story klimaks) -> report; else kembali ke zona
+    if (B.isApex && res === "win") {
+      return apexVictory(bonusEvents);
+    }
+    // tampilkan ringkasan kecil lalu kembali ke zona
+    const wrap = el(`<div><h2>${res === "bond" ? "✨ Bond Berhasil" : res === "flee" ? "Lolos" : "Menang"}</h2>
+      <div class="card"><div class="small">${B.log.slice(-6).join("<br>")}</div></div>
+      ${bonusEvents.length ? `<div class="card" style="margin-top:8px">${bonusEvents.map((e) => "✅ " + e).join("<br>")}</div>` : ""}
+      <div class="row" style="margin-top:12px">
+        <button class="primary" id="cont">↩ Lanjut menjelajah</button>
+        <button id="home">Pulang ke Hub</button>
+      </div></div>`);
+    screen(wrap);
+    wrap.querySelector("#cont").onclick = () => {
+      setLoc("Hutan Luar Verdwall");
+      const w = el(`<div><h2>Hutan Luar Verdwall</h2>
+        <canvas id="zc" width="${zone.data.size.w * TILE}" height="${zone.data.size.h * TILE}"></canvas>
+        <p class="small" id="zmsg"></p>
+        <div class="row"><button id="leave">↩ Paksa pulang ke Hub</button></div></div>`);
+      screen(w);
+      w.querySelector("#leave").onclick = () => endExpedition("Kamu memilih pulang.");
+      zone.msg = res === "bond" ? `${enemyName} kini bagian dari timmu.` : `${enemyName} telah ditangani.`;
+      drawZone();
+      bindKeys();
+    };
+    wrap.querySelector("#home").onclick = () => endExpedition("Kamu kembali ke Hub.");
+  }
+
+  function apexVictory(bonusEvents) {
+    document.onkeydown = null;
+    zone = null;
+    setLoc("Jantung Verdwall");
+    screen(`<div><h2>🌳 Jantung Verdwall — Story Thread Tertutup</h2>
+      <p class="lead">Eldergrove tidak tumbang seperti makhluk biasa. Ia melambat, mengakui kehadiranmu,
+      lalu surut ke akar dunia. Kamu tak menangkapnya — kamu <b>memahaminya, lalu melewatinya</b>.
+      Di kejauhan, nama <i>Luvirel</i> dan <i>Merlyon</i> berbisik: Verdwall hanyalah satu daun dari pohon yang jauh lebih besar.</p>
+      <div class="card">${bonusEvents.map((e) => "✅ " + e).join("<br>") || "Verdwall ditaklukkan."}</div>
+      <p class="hint">Avalon terbuka setelah seluruh region ditaklukkan — endgame di luar slice ini.</p>
+      <div class="row" style="margin-top:14px"><button class="primary" id="back">← Kembali ke Hub</button></div></div>`);
+    $("#back").onclick = hub;
+  }
+
+  function endExpedition(note, extraEvents) {
+    document.onkeydown = null;
+    zone = null;
+    // pulihkan tim di hub
+    Game.party.forEach((p) => {
+      p.hp = p.maxHp;
+      p.status = null;
+      p.statStages = { atk: 0, def: 0, sp_atk: 0, sp_def: 0, speed: 0 };
+      p.enraged = false;
+      p.taunt = 0;
+    });
+    setLoc("Outpost Verdwall (Hub)");
+    screen(`<div><h2>Lapor ke Guild</h2>
+      <p class="lead">${note}</p>
+      <div class="card">
+        <div class="small">Rank ${Game.rank} · ${Game.rankInfo(Game.rank).name} — GP ${Game.gp}${
+          Game.nextRank() && !Game.nextRank().placeholder ? ` / ${Game.nextRank().gp_required} menuju ${Game.nextRank().name}` : ""
+        }</div>
+      </div>
+      ${extraEvents && extraEvents.length ? `<div class="card" style="margin-top:8px">${extraEvents.map((e) => "✅ " + e).join("<br>")}</div>` : ""}
+      <div class="row" style="margin-top:14px"><button class="primary" id="ok">Masuk Hub →</button></div></div>`);
+    $("#ok").onclick = hub;
+  }
+
+  function boot() {
+    Game.init();
+    intro();
+  }
+
+  globalThis.UI = { boot, hub, intro };
+})();
+
+</script>
+<script>UI.boot();</script>
+</body>
+</html>
