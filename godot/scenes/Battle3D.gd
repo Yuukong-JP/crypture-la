@@ -59,12 +59,12 @@ func _ready() -> void:
 	# --- Seeker di belakang tim ---
 	_unit(load("res://assets/world/seeker.png"), Vector3(0, 0, 5.0), 2.1, "Seeker", Color("#cfe0ff"))
 
-	# --- Kamera dari belakang sisi pemain ---
+	# --- Kamera 3/4 (serong dari samping-belakang sisi pemain) ---
 	var cam := Camera3D.new()
-	cam.fov = 46
-	cam.position = Vector3(0, 6.6, 12.0)
-	cam.rotation_degrees = Vector3(-25, 0, 0)
+	cam.fov = 52
 	add_child(cam)
+	cam.position = Vector3(-6.5, 8.8, 8.8)
+	cam.look_at(Vector3(0.4, 0.4, -2.4), Vector3.UP)
 
 func _disc(pos: Vector3, radius: float, col: Color) -> void:
 	var mi := MeshInstance3D.new()
