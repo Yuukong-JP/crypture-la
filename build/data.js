@@ -497,6 +497,7 @@ window.GAME_DATA = {
           "Nature"
         ],
         "class": "Wanderer",
+        "display_scale": 0.9,
         "role": "support",
         "rarity": "Common",
         "bondable": true,
@@ -944,6 +945,7 @@ window.GAME_DATA = {
           "Nature"
         ],
         "class": "Guardian",
+        "display_scale": 1.2,
         "role": "tank",
         "rarity": "Rare",
         "bondable": true,
@@ -1038,6 +1040,7 @@ window.GAME_DATA = {
           "Nature"
         ],
         "class": "Apex",
+        "display_scale": 1.8,
         "role": "tank",
         "rarity": "Regional Apex",
         "bondable": false,

@@ -5,8 +5,10 @@ extends Node3D
 # Jarak dikompensasi perspektif: gap kanan (dekat kamera) dirapatkan agar tampak rata,
 # dan seluruh grup digeser kiri agar lepas dari panel UI kanan.
 const PARTY_X := [-3.1, -1.1, 0.9]
-const ENEMY_CID := "015"  # Mosswhim
-const ENEMY_LV := 10
+const ENEMY_BASE_H := 2.6   # tinggi acuan lawan (display_scale 1.0)
+const PARTY_BASE_H := 1.9
+@export var enemy_cid: String = "015"  # Mosswhim (bisa di-override utk demo)
+@export var enemy_lv: int = 10
 
 var battle
 var cam: Camera3D
@@ -17,19 +19,35 @@ var ui_party: VBoxContainer
 var ui_cmd: VBoxContainer
 var ui_log: RichTextLabel
 
+func _scale_of(cid: String) -> float:
+	return float(Core.db.species[cid].get("display_scale", 1.0))
+
 func _ready() -> void:
 	_build_stage()
 	var party: Array = Core.state.party
 	for p in party:                      # pulihkan utk demo
 		p["hp"] = p["max_hp"]; p["status"] = ""; p["enraged"] = false; p["taunt"] = 0
 		p["stat_stages"] = {"atk": 0, "def": 0, "sp_atk": 0, "sp_def": 0, "speed": 0}
-	var enemy: Dictionary = Core.db.make_instance(ENEMY_CID, ENEMY_LV, true)
-	_spawn(Core.db.sprite_for(ENEMY_CID), Vector3(0, 0, -6.5), 3.0, enemy["uid"])
+	var enemy: Dictionary = Core.db.make_instance(enemy_cid, enemy_lv, true)
+	# tinggi tampil per-Crypture (data-driven). Lawan boleh besar; party dibatasi agar barisan rapi.
+	var enemy_h := ENEMY_BASE_H * _scale_of(enemy_cid)
+	_spawn(Core.db.sprite_for(enemy_cid), Vector3(0, 0, -6.5), enemy_h, enemy["uid"])
 	for i in range(party.size()):
-		_spawn(Core.db.sprite_back_for(party[i]["cid"]), Vector3(PARTY_X[i], 0, 2.6), 1.9, party[i]["uid"])
+		var ph := PARTY_BASE_H * clampf(_scale_of(party[i]["cid"]), 0.7, 1.2)
+		_spawn(Core.db.sprite_back_for(party[i]["cid"]), Vector3(PARTY_X[i], 0, 2.6), ph, party[i]["uid"])
+	_setup_cam(enemy_h)                  # kamera adaptif: makin besar lawan, makin mundur & lihat lebih tinggi
 	battle = Core.new_battle(party, enemy)
 	_build_ui()
 	_refresh()
+
+func _setup_cam(enemy_h: float) -> void:
+	var extra := maxf(0.0, enemy_h - ENEMY_BASE_H)   # seberapa lebih besar dari acuan
+	var target := Vector3(-1.1, 1.0 + extra * 0.30, -1.6)
+	var dist := 8.6 + extra * 1.9
+	var yr := deg_to_rad(25.0); var pr := deg_to_rad(11.6)
+	var dir := Vector3(sin(yr) * cos(pr), sin(pr), cos(yr) * cos(pr))
+	cam.position = target + dir * dist
+	cam.look_at(target, Vector3.UP)
 
 # ---------- panggung 3D ----------
 func _build_stage() -> void:
@@ -62,14 +80,7 @@ func _build_stage() -> void:
 	var pm := PlaneMesh.new(); pm.size = Vector2(40, 40); ground.mesh = pm
 	var gm := StandardMaterial3D.new(); gm.albedo_color = Color("#2c4a35")
 	ground.material_override = gm; ground.position.y = -0.02; add_child(ground)
-
 	cam = Camera3D.new(); cam.fov = 52; add_child(cam)
-	# sudut pilihan owner
-	var target := Vector3(-1.1, 1.0, -1.6)
-	var yr := deg_to_rad(25.0); var pr := deg_to_rad(11.6); var dist := 8.6
-	var dir := Vector3(sin(yr) * cos(pr), sin(pr), cos(yr) * cos(pr))
-	cam.position = target + dir * dist
-	cam.look_at(target, Vector3.UP)
 
 func _disc(pos: Vector3, radius: float, col: Color) -> void:
 	var mi := MeshInstance3D.new()

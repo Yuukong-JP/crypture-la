@@ -62,7 +62,7 @@
       "dex_entry": "Roh kolam yang tenang. Dikatakan Ripplet menyembuhkan luka yang bahkan tak terlihat oleh pemiliknya."
     },
     {
-      "id": "010", "name": "Cappin", "types": ["Nature"], "class": "Wanderer",
+      "id": "010", "name": "Cappin", "types": ["Nature"], "class": "Wanderer", "display_scale": 0.9,
       "role": "support", "rarity": "Common", "bondable": true,
       "base_stats": { "hp": 26, "atk": 9, "def": 9, "sp_atk": 9, "sp_def": 9, "speed": 9 },
       "growth_curve": { "hp": 4, "atk": 2, "def": 2, "sp_atk": 2, "sp_def": 2, "speed": 2 },
@@ -179,7 +179,7 @@
       "dex_entry": "Konon Brookling hanya menampakkan diri pada Seeker yang sabar menunggu kabut pagi terangkat."
     },
     {
-      "id": "015", "name": "Mosswhim", "types": ["Nature"], "class": "Guardian",
+      "id": "015", "name": "Mosswhim", "types": ["Nature"], "class": "Guardian", "display_scale": 1.2,
       "role": "tank", "rarity": "Rare", "bondable": true,
       "base_stats": { "hp": 34, "atk": 10, "def": 14, "sp_atk": 13, "sp_def": 13, "speed": 6 },
       "growth_curve": { "hp": 6, "atk": 2, "def": 3, "sp_atk": 2, "sp_def": 2, "speed": 1 },
@@ -203,7 +203,7 @@
       "dex_entry": "Penjaga tua yang merawat sepetak bunga di telapak akarnya. Mosswhim menguji kesabaran sebelum mengakui seorang Seeker — sebuah tembok skill berlumut."
     },
     {
-      "id": "099", "name": "Eldergrove", "types": ["Nature"], "class": "Apex",
+      "id": "099", "name": "Eldergrove", "types": ["Nature"], "class": "Apex", "display_scale": 1.8,
       "role": "tank", "rarity": "Regional Apex", "bondable": false,
       "base_stats": { "hp": 90, "atk": 16, "def": 14, "sp_atk": 18, "sp_def": 14, "speed": 8 },
       "growth_curve": { "hp": 8, "atk": 2, "def": 2, "sp_atk": 3, "sp_def": 2, "speed": 1 },
