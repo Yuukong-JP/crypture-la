@@ -328,6 +328,30 @@ func mark_observed(cid: String, move_id: String) -> void:
 		if gained > 0:
 			say("📖 Codex %s: +%d%% (melihat skill baru)." % [enemy["name"], gained])
 
+func _eff_spd(u: Dictionary) -> float:
+	return u["stats"]["speed"] * stage_mult(u["stat_stages"]["speed"])
+
+func turn_forecast(n: int) -> Array:
+	# Urutan giliran ke depan: unit aktif + sisa ronde ini + proyeksi ronde berikutnya.
+	var out := []
+	if pending != null and pending["hp"] > 0:
+		out.append(pending)
+	for u in queue:
+		if u["hp"] > 0:
+			out.append(u)
+	var nextr := all_units().filter(func(u): return u["hp"] > 0)
+	nextr.sort_custom(func(a, b): return _eff_spd(a) > _eff_spd(b))
+	var guard := 0
+	while out.size() < n and not nextr.is_empty() and guard < 50:
+		guard += 1
+		for u in nextr:
+			out.append(u)
+			if out.size() >= n:
+				break
+	if out.size() > n:
+		out.resize(n)
+	return out
+
 func flee() -> void:
 	pending = null
 	var soft := alive_players().filter(func(p): return p["abilities"].has("soft_steps")).size()

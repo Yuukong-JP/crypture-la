@@ -17,10 +17,11 @@ var battle
 var cam: Camera3D
 var spr := {}            # instance uid -> Sprite3D
 # UI
-var ui_enemy: Label
+var ui_queue: HBoxContainer   # bar urutan giliran (ikon Crypture)
 var ui_party: VBoxContainer
 var ui_cmd: VBoxContainer
 var ui_log: RichTextLabel
+var _enemy_plate: Label3D     # nameplate melayang di atas musuh (nama + kondisi + Bond%)
 var animate := false   # game (Main) menyalakan; headless/test biarkan mati (instan)
 var _busy := false
 
@@ -39,6 +40,12 @@ func _ready() -> void:
 	# tinggi tampil per-Crypture (data-driven). Lawan boleh besar; party dibatasi agar barisan rapi.
 	var enemy_h := ENEMY_BASE_H * _scale_of(enemy_cid)
 	_spawn(Core.db.sprite_for(enemy_cid), Vector3(0, 0, -6.5), enemy_h, enemy["uid"])
+	_enemy_plate = Label3D.new()
+	_enemy_plate.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_enemy_plate.font_size = 40; _enemy_plate.outline_size = 14
+	_enemy_plate.modulate = Color("#eef3e9")
+	_enemy_plate.position = Vector3(0, enemy_h + 0.7, -6.5)
+	add_child(_enemy_plate)
 	for i in range(party.size()):
 		var ph := PARTY_BASE_H * clampf(_scale_of(party[i]["cid"]), 0.7, 1.2)
 		_spawn(Core.db.sprite_back_for(party[i]["cid"]), Vector3(PARTY_X[i], 0, 2.6), ph, party[i]["uid"])
@@ -157,8 +164,14 @@ func _build_ui() -> void:
 	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(top)
 	top.add_child(_spacer())
-	var ep := _sb_panel(); var ev := VBoxContainer.new(); ep.add_child(ev)
-	ui_enemy = _lbl("", 15); ev.add_child(ui_enemy); top.add_child(ep)
+	var qp := _sb_panel(); var qv := VBoxContainer.new(); qp.add_child(qv)
+	qv.add_theme_constant_override("separation", 4)
+	var qlab := _lbl("Urutan Giliran", 11, Color("#a7c0ad")); qlab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	qv.add_child(qlab)
+	ui_queue = HBoxContainer.new(); ui_queue.add_theme_constant_override("separation", 6)
+	ui_queue.alignment = BoxContainer.ALIGNMENT_CENTER
+	qv.add_child(ui_queue)
+	top.add_child(qp)
 	top.add_child(_spacer())
 	var lp := _sb_panel()
 	ui_log = RichTextLabel.new(); ui_log.fit_content = true
@@ -198,14 +211,16 @@ func _refresh() -> void:
 		else:
 			node.modulate = Color(1, 1, 1, 1)
 
-	# kondisi lawan (HP TERSEMBUNYI)
+	# nameplate musuh melayang (HP TERSEMBUNYI -> kondisi kualitatif)
 	var band = battle.hp_band(float(enemy["hp"]) / enemy["max_hp"])
-	var et := "%s  Lv%d  —  %s" % [enemy["name"], enemy["level"], band["label"]]
+	var et := "%s  Lv%d\n%s" % [enemy["name"], enemy["level"], band["label"]]
 	if not battle.is_apex:
-		et += "   ·   Codex %d%% → Bond %d%%" % [Core.codex.get_pct(enemy["cid"]), Core.codex.bond_rate(enemy["cid"])]
+		et += "  ·  Bond %d%%" % Core.codex.bond_rate(enemy["cid"])
 	if enemy["enraged"]:
-		et += "   🌑MURKA"
-	ui_enemy.text = et
+		et += "  🌑MURKA"
+	if _enemy_plate != null:
+		_enemy_plate.text = et
+	_build_queue()
 
 	# HP party
 	for c in ui_party.get_children():
@@ -232,6 +247,40 @@ func _refresh() -> void:
 	ui_log.text = s
 
 	_build_cmd()
+
+# Bar urutan giliran: ikon Crypture berurutan (kiri = giliran terdekat).
+func _build_queue() -> void:
+	if ui_queue == null:
+		return
+	for c in ui_queue.get_children():
+		c.queue_free()
+	var fc: Array = battle.turn_forecast(7)
+	for i in range(fc.size()):
+		var u = fc[i]
+		var is_enemy: bool = u["uid"] == battle.enemy["uid"]
+		ui_queue.add_child(_turn_icon(u["cid"], 52 if i == 0 else 38, i == 0, is_enemy))
+
+func _turn_icon(cid: String, size: int, active: bool, is_enemy: bool) -> Control:
+	var p := Panel.new()
+	p.custom_minimum_size = Vector2(size, size)
+	var sb := StyleBoxFlat.new()
+	var tcol := Color(Core.db.colors.get(Core.db.species[cid]["types"][0], "#999999"))
+	tcol.a = 0.9
+	sb.bg_color = tcol
+	sb.set_corner_radius_all(int(size / 2))
+	sb.set_border_width_all(3 if active else 2)
+	sb.border_color = Color("#e7c659") if active else (Color("#e0683b") if is_enemy else Color("#9ed27f"))
+	p.add_theme_stylebox_override("panel", sb)
+	var tex: Texture2D = Core.db.sprite_for(cid)
+	if tex != null:
+		var tr := TextureRect.new()
+		tr.texture = tex
+		tr.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		p.add_child(tr)
+	return p
 
 func _build_cmd() -> void:
 	for c in ui_cmd.get_children():
