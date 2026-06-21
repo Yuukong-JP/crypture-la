@@ -35,7 +35,8 @@ sprite 2D billboard di dunia 3D miring. Ada GDD lengkap (docx) milik owner; inti
   - `Battle.gd` — engine turn-based: queue by Speed, type mult, status (burn/sleep/taunt), aksi Seeker, Bond, Apex, `turn_forecast(n)`.
   - `GameState.gd` — Rank/GP, misi, `on_battle_result`.
 - `scenes/`
-  - `Main.gd` (main scene) — screen manager. UI 2D (intro/hub/team/codex/report) via `_set_body`; meluncurkan **ExploreZone3D** & **BattlePlay3D** sebagai child Node3D dan menyembunyikan UI 2D (`_show_ui(false)`). State eksplorasi persisten (`_explore_state`).
+  - `Main.gd` (main scene) — screen manager. UI 2D (intro/board/team/codex/balai/report) via `_set_body`; meluncurkan **HubTown3D** (kota), **ExploreZone3D** & **BattlePlay3D** sebagai child Node3D dan menyembunyikan UI 2D (`_show_ui(false)`). State persisten: `_explore_state`, `_hub_state`.
+  - `HubTown3D.gd` — **Hub = KOTA 3D** (vibe gathering hub Monster Hunter): Seeker jalan (WASD), dekati stasiun (📋 board/⛺ team/📖 codex/💬 talk/🚪 depart) lalu tekan **E/Enter** → sinyal `station(kind)` ke Main. Main buka panel 2D terkait (atau `show_zone` utk depart). Posisi pemain disimpan (`get_state/apply_state`). Visual: plaza, rumah (Box+PrismMesh atap), lentera (OmniLight kedip), gerbang, warga (sprite seeker dimodulasi).
   - `ExploreZone3D.gd` — jelajah 2.5D: WASD, billboard creature/tree, lore ✨, EXIT, kamera 3/4 follow, idle-bob + wander/flee, `get_state/apply_state`. Sinyal: `encounter/reached_exit/go_hub/lore_collected`.
   - `BattlePlay3D.gd` — battle 2.5D: panggung 3D, kamera 3/4 (lihat `_setup_cam`), party **back-sprite** menghadap kanan + musuh, **bar Urutan Giliran** (ikon) di atas, **nameplate musuh** melayang (Label3D), juice (lunge/flash/angka damage), UI overlay (HP party, menu skill, aksi Seeker, log). Flag `animate` (Main=true, test=false). `display_scale` + kamera adaptif (musuh besar → mundur).
   - `ZoneView.gd` — versi 2D top-down LAMA, **tak dipakai** (boleh dihapus).
@@ -106,5 +107,8 @@ kamera adaptif, Mosswhim (musuh baru #015).
   state hover/pressed, ProgressBar membulat — warna via `modulate`), `_make_background()` (gradasi
   vertikal + vignette radial), top bar jadi banner beraksen emas + `_chip()` status. Belum pakai font
   kustom (font masih default Godot) — itu fase berikutnya.
+- **Hub jadi KOTA 3D** (`HubTown3D`): Outpost Verdwall kini dijelajahi (WASD), stasiun interaksi ala
+  Monster Hunter buka panel 2D (board/tim/codex/balai) atau berangkat ekspedisi. `show_hub()` di Main
+  kini meluncurkan kota (bukan lagi menu 2D tunggal); konten lama dipecah jadi `show_board()` & `show_talk()`.
 
 > Saran: #1 atau #2 (paling kerasa). Selalu: ubah → `--import` → screenshot → test → commit/push.

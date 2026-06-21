@@ -4,6 +4,7 @@ extends Control
 
 const ExploreZone3DScene := preload("res://scenes/ExploreZone3D.tscn")
 const BattlePlay3DScene := preload("res://scenes/BattlePlay3D.tscn")
+const HubTown3DScene := preload("res://scenes/HubTown3D.tscn")
 
 var top_rank: Label
 var top_gp: Label
@@ -16,6 +17,8 @@ var _bg: Control      # latar UI bergradasi (disembunyikan saat scene 3D)
 var _rootui: VBoxContainer
 var _battle3d         # scene BattlePlay3D aktif
 var _explore          # scene ExploreZone3D aktif
+var _hub              # scene HubTown3D aktif (kota)
+var _hub_state := {}  # posisi pemain di kota (terjaga lintas buka menu)
 var _explore_state := {}  # posisi pemain + musuh terkalahkan + lore terpakai (lintas battle)
 var _fighting_sid := -1   # sid creature yg sedang ditempur
 var _fx_rect: ColorRect   # overlay layar-penuh utk transisi (flash putih masuk battle)
@@ -214,29 +217,47 @@ func show_intro() -> void:
 	v.add_child(_button("Masuk ke Outpost Verdwall →", show_hub))
 	_set_body(v)
 
-# ---------- HUB ----------
+# ---------- HUB = KOTA 3D (vibe gathering hub Monster Hunter) ----------
+# Outpost Verdwall jadi kota yang bisa dijelajahi; stasiun membuka panel 2D (board/tim/codex/balai).
 func show_hub() -> void:
-	_set_loc("Outpost Verdwall (Hub)")
+	_set_loc("Outpost Verdwall (Kota)")
+	_dispose_explore()
+	_dispose_hub()
+	_show_ui(false)
+	_spawn_hub()
+
+func _spawn_hub() -> void:
+	_hub = HubTown3DScene.instantiate()
+	_hub.station.connect(_on_hub_station)
+	add_child(_hub)
+	if not _hub_state.is_empty():
+		_hub.apply_state(_hub_state)
+
+func _dispose_hub() -> void:
+	if _hub != null and is_instance_valid(_hub):
+		_hub_state = _hub.get_state()
+		_hub.queue_free()
+	_hub = null
+
+func _on_hub_station(kind: String) -> void:
+	_dispose_hub()
+	if kind == "depart":
+		show_zone(); return
+	_show_ui(true)
+	match kind:
+		"board": show_board()
+		"team": show_team()
+		"codex": show_codex()
+		"talk": show_talk()
+
+# Papan Ekspedisi (2D)
+func show_board() -> void:
+	_set_loc("Kota · Papan Ekspedisi")
 	var st = Core.state
 	var v := _screen()
-	v.add_child(_label("Outpost Verdwall", 22, Color("#eef3e9")))
-	v.add_child(_label("Pilih ekspedisi, gali petunjuk Codex dari penduduk, lalu berangkat. Pulang, lapor, dapat Guild Points, naik Rank.", 14, Color("#a7c0ad")))
-
-	# Tim aktif
-	var team := _screen()
-	team.add_child(_label("Tim Aktif (maks 3)", 13, Color("#a7c0ad")))
-	for p in st.party:
-		team.add_child(_unit_row(p))
-	var teambtns := HBoxContainer.new()
-	teambtns.add_theme_constant_override("separation", 8)
-	teambtns.add_child(_button("Kelola Tim", show_team))
-	teambtns.add_child(_button("Buka Codex", show_codex))
-	team.add_child(teambtns)
-	v.add_child(_panel(team))
-
-	# Papan ekspedisi
+	v.add_child(_label("📋 Papan Ekspedisi", 22, Color("#eef3e9")))
+	v.add_child(_label("Terima kontrak Guild, lalu selesaikan di ekspedisi untuk Guild Points & naik Rank.", 14, Color("#a7c0ad")))
 	var mis := _screen()
-	mis.add_child(_label("Papan Ekspedisi", 13, Color("#a7c0ad")))
 	for m in st.active_missions():
 		mis.add_child(_mission_row(m, true))
 	for m in st.available_missions():
@@ -244,24 +265,24 @@ func show_hub() -> void:
 	if st.active_missions().is_empty() and st.available_missions().is_empty():
 		mis.add_child(_label("Tidak ada kontrak tersedia.", 12, Color("#a7c0ad")))
 	v.add_child(_panel(mis))
+	var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 8)
+	row.add_child(_button("← Kembali ke Kota", show_hub))
+	row.add_child(_button("⛺ Berangkat ke Hutan →", show_zone))
+	v.add_child(row)
+	_set_body(v)
 
-	# Interaksi hub
+# Balai Warga & Arsip (2D) — NPC & buku = sumber lore Codex
+func show_talk() -> void:
+	_set_loc("Kota · Balai Warga")
+	var v := _screen()
+	v.add_child(_label("💬 Balai Warga & Arsip", 22, Color("#eef3e9")))
+	v.add_child(_label("Ngobrol dengan penduduk & periksa buku — mengisi Codex Crypture langka (eksplorasi sosial = progres).", 14, Color("#a7c0ad")))
 	var hubi := _screen()
-	hubi.add_child(_label("Penduduk & Arsip Hub — sumber lore Codex", 13, Color("#a7c0ad")))
-	hubi.add_child(_label("Ngobrol & periksa buku mengisi Codex Crypture langka (eksplorasi sosial = progres mekanis).", 12, Color("#a7c0ad")))
-	var hrow := HBoxContainer.new()
-	hrow.add_theme_constant_override("separation", 8)
 	for it in Core.db.world["hub"]["interactions"]:
 		var icon := "📖 " if it["kind"] == "book" else "💬 "
-		hrow.add_child(_button(icon + it["name"], _on_interact.bind(it)))
-	var hwrap := ScrollContainer.new()
-	hwrap.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	hwrap.custom_minimum_size = Vector2(0, 48)
-	hwrap.add_child(hrow)
-	hubi.add_child(hwrap)
+		hubi.add_child(_button(icon + it["name"], _on_interact.bind(it)))
 	v.add_child(_panel(hubi))
-
-	v.add_child(_button("⛺ Berangkat ke Hutan Luar Verdwall →", show_zone))
+	v.add_child(_button("← Kembali ke Kota", show_hub))
 	_set_body(v)
 
 func _mission_row(m: Dictionary, active: bool) -> Control:
@@ -277,7 +298,7 @@ func _mission_row(m: Dictionary, active: bool) -> Control:
 
 func _on_accept(id: String) -> void:
 	Core.state.accept_mission(id)
-	show_hub()
+	show_board()
 
 func _on_interact(it: Dictionary) -> void:
 	var events = Core.codex.add_lore_from_interaction(it)
@@ -289,7 +310,7 @@ func _on_interact(it: Dictionary) -> void:
 	else:
 		for e in events:
 			v.add_child(_label("📖 Codex %s +%d%% — %s" % [e["name"], e["amt"], e["detail"]], 13, Color("#6fae57")))
-	v.add_child(_button("Kembali", show_hub))
+	v.add_child(_button("← Kembali ke Balai", show_talk))
 	_set_body(v)
 
 # Node sprite untuk sebuah Crypture; fallback kotak warna-tipe bila belum ada art.
