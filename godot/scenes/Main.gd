@@ -12,7 +12,7 @@ var body: MarginContainer
 
 var battle            # Battle aktif
 var current_spawn     # spawn yang sedang ditempur
-var _bg: ColorRect    # latar UI (disembunyikan saat scene 3D)
+var _bg: Control      # latar UI bergradasi (disembunyikan saat scene 3D)
 var _rootui: VBoxContainer
 var _battle3d         # scene BattlePlay3D aktif
 var _explore          # scene ExploreZone3D aktif
@@ -22,10 +22,8 @@ var _fx_rect: ColorRect   # overlay layar-penuh utk transisi (flash putih masuk 
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_bg = ColorRect.new()
-	_bg.color = Color("#1b2a22")
-	_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	theme = _make_theme()
+	_bg = _make_background()
 	add_child(_bg)
 
 	var root := VBoxContainer.new()
@@ -34,14 +32,17 @@ func _ready() -> void:
 	root.add_theme_constant_override("separation", 0)
 	add_child(root)
 
-	# Top bar
+	# Top bar — banner (bukan kartu membulat): bingkai bawah beraksen
 	var bar := PanelContainer.new()
+	var banner := _sbflat(Color(0.05, 0.10, 0.08, 0.96), 0, Color(0, 0, 0, 0), 0, 10)
+	banner.border_color = Color("#e7c659"); banner.border_width_bottom = 2
+	bar.add_theme_stylebox_override("panel", banner)
 	var barbox := HBoxContainer.new()
-	barbox.add_theme_constant_override("separation", 18)
-	var brand := _label("CRYPTURE · Lost Avalon — Verdwall slice", 15, Color("#e7c659"), false)
-	top_rank = _label("Rank —", 13, null, false)
-	top_gp = _label("GP 0", 13, null, false)
-	top_loc = _label("—", 13, null, false)
+	barbox.add_theme_constant_override("separation", 16)
+	var brand := _label("✦ CRYPTURE · Lost Avalon", 16, Color("#e7c659"), false)
+	top_rank = _chip("Rank —", Color("#9ed27f"))
+	top_gp = _chip("GP 0", Color("#e7c659"))
+	top_loc = _chip("—", Color("#8fb6d8"))
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	barbox.add_child(brand)
@@ -65,6 +66,81 @@ func _ready() -> void:
 	scroll.add_child(body)
 
 	show_intro()
+
+# ---------- tema & latar (styling konsisten utk semua layar 2D) ----------
+func _sbflat(bg: Color, corner: int, border_c: Color, border_w: int, pad: int) -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = bg
+	s.set_corner_radius_all(corner)
+	s.border_color = border_c
+	s.set_border_width_all(border_w)
+	s.set_content_margin_all(pad)
+	return s
+
+func _make_theme() -> Theme:
+	var t := Theme.new()
+	# Panel (PanelContainer) — kartu konten
+	t.set_stylebox("panel", "PanelContainer", _sbflat(Color(0.06, 0.12, 0.09, 0.88), 12, Color(0.22, 0.38, 0.29, 0.9), 1, 12))
+	# Tombol — membulat, bingkai, ada state hover/pressed
+	t.set_stylebox("normal", "Button", _sbflat(Color(0.10, 0.19, 0.14, 0.96), 9, Color(0.30, 0.48, 0.36), 1, 9))
+	t.set_stylebox("hover", "Button", _sbflat(Color(0.17, 0.30, 0.22, 0.98), 9, Color(0.55, 0.80, 0.55), 1, 9))
+	t.set_stylebox("pressed", "Button", _sbflat(Color(0.07, 0.14, 0.10, 0.98), 9, Color(0.45, 0.66, 0.46), 1, 9))
+	t.set_stylebox("disabled", "Button", _sbflat(Color(0.08, 0.12, 0.10, 0.7), 9, Color(0.20, 0.28, 0.23), 1, 9))
+	t.set_stylebox("focus", "Button", _sbflat(Color(0, 0, 0, 0), 9, Color(0.7, 0.9, 0.7, 0.6), 1, 9))
+	t.set_color("font_color", "Button", Color("#eaf3ea"))
+	t.set_color("font_hover_color", "Button", Color("#ffffff"))
+	t.set_color("font_pressed_color", "Button", Color("#cfe0d0"))
+	t.set_color("font_disabled_color", "Button", Color("#6b7d70"))
+	# ProgressBar — membulat; warna asli diatur lewat modulate (putih * modulate = warna)
+	t.set_stylebox("background", "ProgressBar", _sbflat(Color(0.04, 0.07, 0.06, 0.9), 6, Color(0.18, 0.28, 0.22), 1, 0))
+	t.set_stylebox("fill", "ProgressBar", _sbflat(Color(1, 1, 1, 1), 6, Color(1, 1, 1, 0), 0, 0))
+	return t
+
+func _make_background() -> Control:
+	var root := Control.new()
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# gradasi vertikal (hutan dalam): atas lebih terang -> bawah gelap
+	var g := Gradient.new()
+	g.set_color(0, Color("#1d3a2c"))
+	g.set_color(1, Color("#0b1610"))
+	g.offsets = [0.0, 1.0]
+	var gt := GradientTexture2D.new()
+	gt.gradient = g; gt.width = 8; gt.height = 256
+	gt.fill_from = Vector2(0, 0); gt.fill_to = Vector2(0, 1)
+	var tr := TextureRect.new()
+	tr.texture = gt
+	tr.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.stretch_mode = TextureRect.STRETCH_SCALE
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(tr)
+	# vignette: radial transparan di tengah -> gelap di tepi
+	var vg := Gradient.new()
+	vg.set_color(0, Color(0, 0, 0, 0))
+	vg.set_color(1, Color(0, 0, 0, 0.45))
+	vg.offsets = [0.35, 1.0]
+	var vt := GradientTexture2D.new()
+	vt.gradient = vg; vt.width = 256; vt.height = 256
+	vt.fill = GradientTexture2D.FILL_RADIAL
+	vt.fill_from = Vector2(0.5, 0.5); vt.fill_to = Vector2(1.0, 0.5)
+	var vr := TextureRect.new()
+	vr.texture = vt
+	vr.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	vr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	vr.stretch_mode = TextureRect.STRETCH_SCALE
+	vr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(vr)
+	return root
+
+# Chip: Label berlatar membulat (status di top bar). `.text` tetap bisa di-set.
+func _chip(text: String, accent: Color) -> Label:
+	var l := _label(text, 13, accent, false)
+	var sb := _sbflat(Color(0.10, 0.17, 0.13, 0.95), 8, accent, 1, 0)
+	sb.content_margin_left = 10; sb.content_margin_right = 10
+	sb.content_margin_top = 4; sb.content_margin_bottom = 4
+	l.add_theme_stylebox_override("normal", sb)
+	return l
 
 # ---------- helper UI ----------
 func _label(text: String, size := 14, color = null, wrap := true) -> Label:

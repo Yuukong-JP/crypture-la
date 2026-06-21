@@ -91,10 +91,9 @@ kamera adaptif, Mosswhim (musuh baru #015).
 > (font kustom, panel bergaya, ikon) dilakukan NANTI setelah fitur lengkap. Sekarang fokus fungsi.
 
 ## 8. Langkah berikutnya (menu — owner pilih)
-1. **Percantik Hub/menu** — satu-satunya bagian yang masih 2D polos (kontras dgn dunia HD-2D). Pertimbangkan Hub 3D kecil atau panel ber-styling.
-2. **Pasang sprite sisanya** (owner kirim) — Cappin, Glimmoth, Pebblion, Gustling, Brookling, Eldergrove.
-3. **Animasi aksi berurutan** di battle (sekarang resolusi engine sinkron → flash/number muncul bersamaan; bisa dibuat step-by-step dgn delay per aksi).
-4. **Art polish UI** (font kustom + theme) — fase tersendiri.
+1. **Pasang sprite sisanya** (owner kirim) — Cappin, Glimmoth, Pebblion, Gustling, Brookling, Eldergrove.
+2. **Animasi aksi berurutan** di battle (sekarang resolusi engine sinkron → flash/number muncul bersamaan; bisa dibuat step-by-step dgn delay per aksi).
+3. **Art polish UI lanjutan** — font kustom (.ttf), ikon, bingkai bertekstur. Theme dasar sudah ada (lihat di bawah).
 
 **Sudah SELESAI:**
 - Turn queue: bar vertikal **nempel kiri layar**, tiap baris kotak gradasi (pekat kiri → transparan
@@ -103,5 +102,9 @@ kamera adaptif, Mosswhim (musuh baru #015).
 - **Transisi masuk battle**: flash putih kedip ("Encounter!") → tutup → swap → reveal, +intro kamera
   meluncur masuk. Lihat `Main._battle_transition` & `BattlePlay3D._setup_cam` (blok `if animate`).
   CATATAN: `_on_encounter` kini **async** (await transisi) — driver/test harus tunggu `_battle3d != null`.
+- **Hub/menu 2D dipercantik**: `Main._make_theme()` (Theme dasar: panel & tombol membulat berbingkai +
+  state hover/pressed, ProgressBar membulat — warna via `modulate`), `_make_background()` (gradasi
+  vertikal + vignette radial), top bar jadi banner beraksen emas + `_chip()` status. Belum pakai font
+  kustom (font masih default Godot) — itu fase berikutnya.
 
 > Saran: #1 atau #2 (paling kerasa). Selalu: ubah → `--import` → screenshot → test → commit/push.
