@@ -31,9 +31,11 @@ func _build_town() -> void:
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color("#6b5f72"); env.ambient_light_energy = 0.7
 	env.fog_enabled = true; env.fog_light_color = Color("#3a2f42"); env.fog_density = 0.03
-	env.glow_enabled = true; env.glow_intensity = 0.7; env.glow_bloom = 0.25
+	# glow halus, bloom mati, threshold tinggi -> lentera bercahaya tapi tak membakar layar
+	env.glow_enabled = true; env.glow_intensity = 0.3; env.glow_bloom = 0.0
+	env.glow_hdr_threshold = 1.25
 	env.tonemap_mode = Environment.TONE_MAPPER_ACES
-	env.adjustment_enabled = true; env.adjustment_contrast = 1.08; env.adjustment_saturation = 1.16
+	env.adjustment_enabled = true; env.adjustment_contrast = 1.06; env.adjustment_saturation = 1.14
 	var we := WorldEnvironment.new(); we.environment = env; add_child(we)
 
 	var sun := DirectionalLight3D.new()        # cahaya senja hangat dari samping
@@ -131,10 +133,10 @@ func _lantern(pos: Vector3) -> void:
 	var sm := SphereMesh.new(); sm.radius = 0.22; sm.height = 0.44; bulb.mesh = sm
 	var bmat := StandardMaterial3D.new()
 	bmat.albedo_color = Color("#ffd98a"); bmat.emission_enabled = true
-	bmat.emission = Color("#ffcf73"); bmat.emission_energy_multiplier = 2.2
+	bmat.emission = Color("#ffcf73"); bmat.emission_energy_multiplier = 1.1
 	bulb.material_override = bmat; bulb.position = pos + Vector3(0, 2.05, 0); add_child(bulb)
 	var light := OmniLight3D.new()
-	light.light_color = Color("#ffc77a"); light.light_energy = 2.4; light.omni_range = 7.0
+	light.light_color = Color("#ffc77a"); light.light_energy = 1.5; light.omni_range = 6.5
 	light.position = pos + Vector3(0, 2.05, 0); add_child(light)
 	_lanterns.append({"light": light, "phase": randf() * TAU})
 
@@ -236,7 +238,7 @@ func _animate(delta: float) -> void:
 	for s in stations:
 		s["label"].position.y = s["base_y"] + sin(t * 2.0 + s["pos"].x) * 0.12
 	for lan in _lanterns:
-		lan["light"].light_energy = 2.2 + sin(t * 6.0 + lan["phase"]) * 0.5   # kedip lentera
+		lan["light"].light_energy = 1.5 + sin(t * 6.0 + lan["phase"]) * 0.3   # kedip lentera
 
 func _check_near() -> void:
 	var pp := Vector2(player.position.x, player.position.z)

@@ -36,9 +36,10 @@ func _build_world() -> void:
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color("#5a7a66"); env.ambient_light_energy = 0.6
 	env.fog_enabled = true; env.fog_light_color = Color("#2f5142"); env.fog_density = 0.035
-	env.glow_enabled = true; env.glow_intensity = 0.5; env.glow_bloom = 0.15
+	env.glow_enabled = true; env.glow_intensity = 0.26; env.glow_bloom = 0.0
+	env.glow_hdr_threshold = 1.2
 	env.tonemap_mode = Environment.TONE_MAPPER_ACES
-	env.adjustment_enabled = true; env.adjustment_contrast = 1.08; env.adjustment_saturation = 1.12
+	env.adjustment_enabled = true; env.adjustment_contrast = 1.06; env.adjustment_saturation = 1.1
 	var we := WorldEnvironment.new(); we.environment = env; add_child(we)
 
 	var sun := DirectionalLight3D.new()

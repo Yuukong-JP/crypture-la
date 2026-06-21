@@ -19,6 +19,7 @@ var _battle3d         # scene BattlePlay3D aktif
 var _explore          # scene ExploreZone3D aktif
 var _hub              # scene HubTown3D aktif (kota)
 var _hub_state := {}  # posisi pemain di kota (terjaga lintas buka menu)
+var _in_transition := false  # sedang transisi masuk battle (cegah encounter ganda)
 var _explore_state := {}  # posisi pemain + musuh terkalahkan + lore terpakai (lintas battle)
 var _fighting_sid := -1   # sid creature yg sedang ditempur
 var _fx_rect: ColorRect   # overlay layar-penuh utk transisi (flash putih masuk battle)
@@ -221,8 +222,10 @@ func show_intro() -> void:
 # Outpost Verdwall jadi kota yang bisa dijelajahi; stasiun membuka panel 2D (board/tim/codex/balai).
 func show_hub() -> void:
 	_set_loc("Outpost Verdwall (Kota)")
+	_dispose_battle()    # pastikan tak ada sisa UI/scene battle yg ikut ke kota
 	_dispose_explore()
 	_dispose_hub()
+	_reset_fx()
 	_show_ui(false)
 	_spawn_hub()
 
@@ -438,6 +441,9 @@ func show_codex() -> void:
 # ---------- ZONA ----------
 func show_zone() -> void:
 	_set_loc("Hutan Luar Verdwall")
+	_dispose_battle()
+	_dispose_hub()
+	_reset_fx()
 	_show_ui(false)
 	_spawn_explore()
 
@@ -460,16 +466,26 @@ func _show_ui(show: bool) -> void:
 	if _rootui != null: _rootui.visible = show
 
 func _on_encounter(spawn) -> void:
+	# GUARD: cegah encounter ganda. Scene jelajah masih tampak selama flash, tapi ia akan
+	# terus memancarkan sinyal ini tiap frame jika tak dibekukan -> bisa spawn battle berkali2.
+	if _in_transition or _battle3d != null:
+		return
+	_in_transition = true
 	current_spawn = spawn
 	_fighting_sid = int(spawn["sid"])
-	# simpan posisi & progres eksplorasi (scene jelajah masih tampak selama flash)
+	# simpan posisi & progres eksplorasi, lalu BEKUKAN explore (stop emit encounter ganda)
 	if _explore != null and is_instance_valid(_explore):
 		_explore_state = _explore.get_state()
+		_explore.set_process(false)
+		_explore.set_process_input(false)
+		_explore.set_process_unhandled_input(false)
 	Core.codex.add_from_source(spawn["cid"], "encounter")
 	await _battle_transition(spawn)
+	_in_transition = false
 
 # Transisi masuk battle: flash "Encounter!" beberapa kedip -> tutup putih -> swap -> reveal.
 func _battle_transition(spawn) -> void:
+	_dispose_battle()        # defensif: jangan pernah menumpuk battle
 	_ensure_fx()
 	_fx_rect.visible = true
 	_fx_rect.color = Color(1, 1, 1, 0)
@@ -491,7 +507,17 @@ func _battle_transition(spawn) -> void:
 		await get_tree().process_frame
 	# 3) singkap (kamera battle meluncur masuk via intro-nya sendiri)
 	await _fade_rect(_fx_rect, 1.0, 0.0, 0.3)
-	_fx_rect.visible = false
+	_reset_fx()
+
+func _dispose_battle() -> void:
+	if _battle3d != null and is_instance_valid(_battle3d):
+		_battle3d.queue_free()
+	_battle3d = null
+
+func _reset_fx() -> void:
+	if _fx_rect != null and is_instance_valid(_fx_rect):
+		_fx_rect.visible = false
+		_fx_rect.color = Color(1, 1, 1, 0)
 
 func _ensure_fx() -> void:
 	if _fx_rect != null and is_instance_valid(_fx_rect):
@@ -513,9 +539,8 @@ func _fade_rect(rect: ColorRect, from_a: float, to_a: float, dur: float) -> void
 
 func _on_battle3d_done(b) -> void:
 	battle = b
-	if _battle3d != null and is_instance_valid(_battle3d):
-		_battle3d.queue_free()
-	_battle3d = null
+	_dispose_battle()
+	_reset_fx()
 	# tandai musuh terkalahkan agar tak muncul lagi saat kembali menjelajah
 	if (b.result == "win" or b.result == "bond") and _fighting_sid >= 0:
 		var d: Array = _explore_state.get("defeated", [])

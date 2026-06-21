@@ -88,22 +88,24 @@ func _build_stage() -> void:
 	env.background_color = Color("#15241d")
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color("#5d7e69")
-	env.ambient_light_energy = 0.65
+	env.ambient_light_energy = 0.55
 	env.fog_enabled = true
 	env.fog_light_color = Color("#2a4a3c")
 	env.fog_density = 0.05
+	# glow halus saja; bloom dimatikan & threshold tinggi agar tak overexposed/silau di GPU asli
 	env.glow_enabled = true
-	env.glow_intensity = 0.55
-	env.glow_bloom = 0.18
+	env.glow_intensity = 0.28
+	env.glow_bloom = 0.0
+	env.glow_hdr_threshold = 1.2
 	env.tonemap_mode = Environment.TONE_MAPPER_ACES
 	env.adjustment_enabled = true
-	env.adjustment_contrast = 1.1
-	env.adjustment_saturation = 1.15
+	env.adjustment_contrast = 1.06
+	env.adjustment_saturation = 1.12
 	var we := WorldEnvironment.new(); we.environment = env; add_child(we)
 
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-50, -34, 0)
-	sun.light_energy = 1.2; sun.light_color = Color("#ffe7c4"); sun.shadow_enabled = true
+	sun.light_energy = 1.0; sun.light_color = Color("#ffe7c4"); sun.shadow_enabled = true
 	add_child(sun)
 
 	_disc(Vector3(0, 0, 3.2), 4.2, Color("#3f6b44"))
