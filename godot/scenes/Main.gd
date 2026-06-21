@@ -18,6 +18,7 @@ var _battle3d         # scene BattlePlay3D aktif
 var _explore          # scene ExploreZone3D aktif
 var _explore_state := {}  # posisi pemain + musuh terkalahkan + lore terpakai (lintas battle)
 var _fighting_sid := -1   # sid creature yg sedang ditempur
+var _fx_rect: ColorRect   # overlay layar-penuh utk transisi (flash putih masuk battle)
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -364,18 +365,54 @@ func _show_ui(show: bool) -> void:
 func _on_encounter(spawn) -> void:
 	current_spawn = spawn
 	_fighting_sid = int(spawn["sid"])
-	# simpan posisi & progres eksplorasi, lalu lepas scene jelajah
+	# simpan posisi & progres eksplorasi (scene jelajah masih tampak selama flash)
 	if _explore != null and is_instance_valid(_explore):
 		_explore_state = _explore.get_state()
-	_dispose_explore()
 	Core.codex.add_from_source(spawn["cid"], "encounter")
-	# luncurkan battle 3D (UI 2D tetap tersembunyi)
+	await _battle_transition(spawn)
+
+# Transisi masuk battle: flash "Encounter!" beberapa kedip -> tutup putih -> swap -> reveal.
+func _battle_transition(spawn) -> void:
+	_ensure_fx()
+	_fx_rect.visible = true
+	_fx_rect.color = Color(1, 1, 1, 0)
+	# 1) dua kedip cepat (jelajah masih terlihat di baliknya) — sensasi "Encounter!"
+	for i in range(2):
+		await _fade_rect(_fx_rect, 0.0, 0.6, 0.06)
+		await _fade_rect(_fx_rect, 0.6, 0.0, 0.07)
+	# 2) tutup penuh, lalu ganti jelajah -> battle di balik layar putih
+	await _fade_rect(_fx_rect, 0.0, 1.0, 0.16)
+	_dispose_explore()
 	_battle3d = BattlePlay3DScene.instantiate()
 	_battle3d.enemy_cid = String(spawn["cid"])
 	_battle3d.enemy_lv = int(spawn["level"])
 	_battle3d.animate = true
 	_battle3d.battle_finished.connect(_on_battle3d_done)
 	add_child(_battle3d)
+	# beri beberapa frame agar panggung battle ter-render sebelum disingkap
+	for i in range(3):
+		await get_tree().process_frame
+	# 3) singkap (kamera battle meluncur masuk via intro-nya sendiri)
+	await _fade_rect(_fx_rect, 1.0, 0.0, 0.3)
+	_fx_rect.visible = false
+
+func _ensure_fx() -> void:
+	if _fx_rect != null and is_instance_valid(_fx_rect):
+		return
+	var cl := CanvasLayer.new()
+	cl.layer = 128  # di atas UI battle
+	add_child(cl)
+	_fx_rect = ColorRect.new()
+	_fx_rect.color = Color(1, 1, 1, 0)
+	_fx_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_fx_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cl.add_child(_fx_rect)
+
+func _fade_rect(rect: ColorRect, from_a: float, to_a: float, dur: float) -> void:
+	rect.color.a = from_a
+	var tw := create_tween()
+	tw.tween_property(rect, "color:a", to_a, dur)
+	await tw.finished
 
 func _on_battle3d_done(b) -> void:
 	battle = b

@@ -9,8 +9,12 @@ func _ready() -> void:
 	var c = main._explore.creatures[0]
 	var spawn = {"sid": c["sid"], "cid": c["cid"], "level": c["level"]}
 	print("encounter: ", spawn["cid"])
-	main._on_encounter(spawn)
-	for i in range(8): await get_tree().process_frame
+	main._on_encounter(spawn)  # async: transisi flash dulu, baru spawn battle
+	var w := 0
+	while main._battle3d == null and w < 300:
+		w += 1
+		await get_tree().process_frame
+	await get_tree().process_frame
 	main._battle3d.animate = false  # driver headless: instan
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png("/tmp/cap_int_battle.png")

@@ -66,9 +66,20 @@ func _setup_cam(enemy_h: float) -> void:
 	var dist := 8.6 + extra * 1.9
 	var yr := deg_to_rad(25.0); var pr := deg_to_rad(11.6)
 	var dir := Vector3(sin(yr) * cos(pr), sin(pr), cos(yr) * cos(pr))
-	cam.position = target + dir * dist
+	var final_pos := target + dir * dist
+	cam.position = final_pos
 	cam.look_at(target, Vector3.UP)
 	cam.make_current()
+	# intro: kamera meluncur masuk dari sedikit lebih jauh & tinggi (sensasi "zoom in")
+	if animate:
+		var start_pos := target + dir * (dist * 1.16) + Vector3(0, 1.1, 0)
+		cam.position = start_pos
+		cam.look_at(target, Vector3.UP)
+		var tw := create_tween()
+		tw.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+		tw.tween_method(func(t: float):
+			cam.position = start_pos.lerp(final_pos, t)
+			cam.look_at(target, Vector3.UP), 0.0, 1.0, 0.55)
 
 # ---------- panggung 3D ----------
 func _build_stage() -> void:

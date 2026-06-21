@@ -87,15 +87,21 @@ Intro → Hub (2D) → jelajah **2.5D** (WASD, creature hidup) → dekati Cryptu
 juice) → menang/Bond → hasil (GP/misi) → lanjut/pulang → Rank. Sprite pipeline (front+back), display_scale,
 kamera adaptif, Mosswhim (musuh baru #015).
 
-## 8. Langkah berikutnya (menu — owner pilih)
-1. **Transisi masuk battle** — flash/zoom pas encounter (jelajah→battle mulus).
-2. **Percantik Hub/menu** — satu-satunya bagian yang masih 2D polos (kontras dgn dunia HD-2D). Pertimbangkan Hub 3D kecil atau panel ber-styling.
-3. **Pasang sprite sisanya** (owner kirim) — Cappin, Glimmoth, Pebblion, Gustling, Brookling, Eldergrove.
-4. **Animasi aksi berurutan** di battle (sekarang resolusi engine sinkron → flash/number muncul bersamaan; bisa dibuat step-by-step dgn delay per aksi).
+> Catatan owner: UI battle masih "mentah" (kotak polos, font default Godot) — fase art-polish
+> (font kustom, panel bergaya, ikon) dilakukan NANTI setelah fitur lengkap. Sekarang fokus fungsi.
 
-**Sudah SELESAI:** turn queue dirombak → bar vertikal **nempel kiri layar**, tiap baris kotak
-gradasi (pekat kiri → transparan kanan), **portrait close-up muka** (AtlasTexture auto-crop kepala
-via `_face_tex`, di-cache), nama + subjudul, dan **animasi meluncur** saat giliran berganti
-(`_queue_prev` lacak posisi y, tween per baris). Lihat `BattlePlay3D._build_queue/_turn_tile`.
+## 8. Langkah berikutnya (menu — owner pilih)
+1. **Percantik Hub/menu** — satu-satunya bagian yang masih 2D polos (kontras dgn dunia HD-2D). Pertimbangkan Hub 3D kecil atau panel ber-styling.
+2. **Pasang sprite sisanya** (owner kirim) — Cappin, Glimmoth, Pebblion, Gustling, Brookling, Eldergrove.
+3. **Animasi aksi berurutan** di battle (sekarang resolusi engine sinkron → flash/number muncul bersamaan; bisa dibuat step-by-step dgn delay per aksi).
+4. **Art polish UI** (font kustom + theme) — fase tersendiri.
+
+**Sudah SELESAI:**
+- Turn queue: bar vertikal **nempel kiri layar**, tiap baris kotak gradasi (pekat kiri → transparan
+  kanan), **portrait close-up muka** (AtlasTexture auto-crop kepala via `_face_tex`, di-cache), nama +
+  subjudul, **animasi meluncur** saat giliran berganti. Lihat `BattlePlay3D._build_queue/_turn_tile`.
+- **Transisi masuk battle**: flash putih kedip ("Encounter!") → tutup → swap → reveal, +intro kamera
+  meluncur masuk. Lihat `Main._battle_transition` & `BattlePlay3D._setup_cam` (blok `if animate`).
+  CATATAN: `_on_encounter` kini **async** (await transisi) — driver/test harus tunggu `_battle3d != null`.
 
 > Saran: #1 atau #2 (paling kerasa). Selalu: ubah → `--import` → screenshot → test → commit/push.
