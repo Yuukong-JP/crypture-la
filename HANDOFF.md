@@ -4,7 +4,8 @@ Dokumen ini agar sesi/Claude baru bisa langsung melanjutkan tanpa konteks sebelu
 **Baca ini lebih dulu, lalu lanjutkan dari bagian "Langkah berikutnya".**
 
 Owner non-teknis — tunjukkan progres lewat **screenshot**, jelaskan dalam Bahasa Indonesia, dan
-**commit + push tiap milestone** ke branch `claude/admiring-cannon-w4sg5x`.
+**commit + push tiap milestone**. **Satu branch saja:** `claude/focused-ramanujan-1e5i2y`
+(branch lama `claude/admiring-cannon-w4sg5x` sudah ditinggalkan — jangan dipakai lagi).
 
 ---
 
@@ -49,8 +50,8 @@ sprite 2D billboard di dunia 3D miring. Ada GDD lengkap (docx) milik owner; inti
 - Aturan emas GDD: jangan tambah konten/skala sebelum slice terbukti fun.
 
 ## 5. Status art (sprite asli owner)
-Sudah ada: **Verduck** (front=bebek + back), **Pyruff** (back), **Ripplet** (back), **Mosswhim** (front).
-Masih placeholder: front Pyruff/Ripplet, **Cappin, Glimmoth, Pebblion, Gustling, Brookling**, Eldergrove.
+Sudah ada: **Verduck** (front+back), **Pyruff** (front=rubah api + back), **Ripplet** (front=makhluk air + back), **Mosswhim** (front).
+Masih placeholder: **Cappin, Glimmoth, Pebblion, Gustling, Brookling**, Eldergrove (semua front), + back utk yg belum.
 
 **Cara pasang sprite dari owner:** owner kirim gambar di chat (sering webp/jpeg dengan latar kotak-kotak yang ter-*bake*).
 File upload TIDAK ada di disk — gambar ter-embed base64 di transkrip `~/.claude/projects/<...>/<session>.jsonl`
@@ -89,8 +90,12 @@ kamera adaptif, Mosswhim (musuh baru #015).
 ## 8. Langkah berikutnya (menu — owner pilih)
 1. **Transisi masuk battle** — flash/zoom pas encounter (jelajah→battle mulus).
 2. **Percantik Hub/menu** — satu-satunya bagian yang masih 2D polos (kontras dgn dunia HD-2D). Pertimbangkan Hub 3D kecil atau panel ber-styling.
-3. **Pasang sprite sisanya** (owner kirim).
-4. **Poles turn queue** — ikon yang baru jalan "meluncur" ke belakang antrian; animasi.
-5. **Animasi aksi berurutan** di battle (sekarang resolusi engine sinkron → flash/number muncul bersamaan; bisa dibuat step-by-step dgn delay per aksi).
+3. **Pasang sprite sisanya** (owner kirim) — Cappin, Glimmoth, Pebblion, Gustling, Brookling, Eldergrove.
+4. **Animasi aksi berurutan** di battle (sekarang resolusi engine sinkron → flash/number muncul bersamaan; bisa dibuat step-by-step dgn delay per aksi).
+
+**Sudah SELESAI:** turn queue dirombak → bar vertikal **nempel kiri layar**, tiap baris kotak
+gradasi (pekat kiri → transparan kanan), **portrait close-up muka** (AtlasTexture auto-crop kepala
+via `_face_tex`, di-cache), nama + subjudul, dan **animasi meluncur** saat giliran berganti
+(`_queue_prev` lacak posisi y, tween per baris). Lihat `BattlePlay3D._build_queue/_turn_tile`.
 
 > Saran: #1 atau #2 (paling kerasa). Selalu: ubah → `--import` → screenshot → test → commit/push.

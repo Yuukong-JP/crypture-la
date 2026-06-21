@@ -17,13 +17,19 @@ var battle
 var cam: Camera3D
 var spr := {}            # instance uid -> Sprite3D
 # UI
-var ui_queue: VBoxContainer   # bar urutan giliran vertikal di kiri (portrait + nama)
+var ui_queue: Control        # bar urutan giliran (layout manual utk animasi meluncur)
 var ui_party: VBoxContainer
 var ui_cmd: VBoxContainer
 var ui_log: RichTextLabel
 var _enemy_plate: Label3D     # nameplate melayang di atas musuh (nama + kondisi + Bond%)
 var animate := false   # game (Main) menyalakan; headless/test biarkan mati (instan)
 var _busy := false
+var _grad: GradientTexture2D  # gradasi pekat->transparan utk latar baris antrian
+var _face_cache := {}         # cid -> AtlasTexture (close-up muka)
+var _queue_prev := {}         # key baris -> posisi y sebelumnya (utk animasi meluncur)
+
+const QROW_H := 46            # tinggi tiap slot antrian
+const QW := 234              # lebar panel antrian
 
 func _scale_of(cid: String) -> float:
 	return float(Core.db.species[cid].get("display_scale", 1.0))
@@ -170,17 +176,18 @@ func _build_ui() -> void:
 	ui_log.add_theme_font_size_override("normal_font_size", 12)
 	lp.add_child(ui_log); top.add_child(lp)
 
-	# bar Urutan Giliran VERTIKAL di KIRI (portrait + nama). Kita di kiri, jadi antrian di kiri.
-	var qp := _sb_panel()
-	qp.position = Vector2(12, 56)
-	qp.custom_minimum_size = Vector2(196, 0)
-	var qv := VBoxContainer.new(); qv.add_theme_constant_override("separation", 6)
-	qp.add_child(qv)
-	var qlab := _lbl("Urutan Giliran", 12, Color("#a7c0ad")); qlab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	qv.add_child(qlab)
-	ui_queue = VBoxContainer.new(); ui_queue.add_theme_constant_override("separation", 5)
-	qv.add_child(ui_queue)
-	root.add_child(qp)
+	# bar Urutan Giliran: NEMPEL ke kiri layar. Tiap baris kotak gradasi (pekat kiri -> transparan kanan),
+	# portrait close-up muka + nama. Layout manual supaya baris bisa "meluncur" saat giliran berganti.
+	_ensure_grad()
+	var qtitle := _lbl("URUTAN GILIRAN", 11, Color("#cfe0d2"))
+	qtitle.position = Vector2(14, 28)
+	qtitle.add_theme_constant_override("outline_size", 4)
+	qtitle.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7))
+	root.add_child(qtitle)
+	ui_queue = Control.new()
+	ui_queue.position = Vector2(0, 48)
+	ui_queue.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(ui_queue)
 
 	col.add_child(_spacer_v())  # dorong baris bawah ke bawah
 
@@ -251,59 +258,160 @@ func _refresh() -> void:
 
 	_build_cmd()
 
-# Bar urutan giliran (vertikal, kiri): tiap baris = portrait + nama. Atas = giliran terdekat.
+# Gradasi putih (alpha 1 -> 0) horizontal; di-modulate per baris jadi warna apa pun yg memudar ke kanan.
+func _ensure_grad() -> void:
+	if _grad != null:
+		return
+	var g := Gradient.new()
+	g.set_color(0, Color(1, 1, 1, 1))
+	g.set_color(1, Color(1, 1, 1, 0))
+	g.offsets = [0.0, 1.0]
+	_grad = GradientTexture2D.new()
+	_grad.gradient = g
+	_grad.width = 256; _grad.height = 4
+	_grad.fill_from = Vector2(0, 0); _grad.fill_to = Vector2(1, 0)
+
+# AtlasTexture close-up ke MUKA: cari kepala (deretan piksel teratas), crop kotak di sekitarnya.
+func _face_tex(cid: String) -> Texture2D:
+	if _face_cache.has(cid):
+		return _face_cache[cid]
+	var tex: Texture2D = Core.db.sprite_for(cid)
+	if tex == null:
+		_face_cache[cid] = null
+		return null
+	var img := tex.get_image()
+	if img == null:
+		_face_cache[cid] = tex
+		return tex
+	if img.is_compressed():
+		img.decompress()
+	# kerjakan pada salinan kecil agar cepat
+	var small: Image = img.duplicate()
+	var fw: int = small.get_width()
+	var sc := 1.0
+	if fw > 180:
+		sc = 180.0 / float(fw)
+		small.resize(int(fw * sc), maxi(1, int(small.get_height() * sc)), Image.INTERPOLATE_BILINEAR)
+	var used := small.get_used_rect()
+	if used.size.x <= 0 or used.size.y <= 0:
+		used = Rect2i(Vector2i.ZERO, small.get_size())
+	# rentang horizontal kepala = sebaran piksel di pita atas (kepala biasanya di puncak)
+	var band := maxi(1, int(used.size.y * 0.30))
+	var minx := 1 << 30; var maxx := -1
+	for y in range(used.position.y, used.position.y + band):
+		for x in range(used.position.x, used.position.x + used.size.x):
+			if small.get_pixel(x, y).a > 0.35:
+				minx = mini(minx, x); maxx = maxi(maxx, x)
+	var head_cx: float = (minx + maxx) * 0.5 if maxx >= minx else used.position.x + used.size.x * 0.5
+	# kotak crop ~62% sisi terpendek, sedikit di bawah puncak kepala
+	var size := minf(float(mini(used.size.x, used.size.y)) * 0.62, float(mini(small.get_width(), small.get_height())))
+	var cx := clampf(head_cx, size * 0.5, small.get_width() - size * 0.5)
+	var cy := clampf(used.position.y + size * 0.42, size * 0.5, small.get_height() - size * 0.5)
+	var inv := 1.0 / sc
+	var at := AtlasTexture.new()
+	at.atlas = tex
+	at.region = Rect2((cx - size * 0.5) * inv, (cy - size * 0.5) * inv, size * inv, size * inv)
+	_face_cache[cid] = at
+	return at
+
+# Bar urutan giliran: tiap baris meluncur dari posisi lamanya ke posisi baru saat giliran berganti.
 func _build_queue() -> void:
 	if ui_queue == null:
 		return
+	_ensure_grad()
 	for c in ui_queue.get_children():
 		c.queue_free()
 	var fc: Array = battle.turn_forecast(6)
+	var seen := {}
+	var newpos := {}
 	for i in range(fc.size()):
 		var u = fc[i]
-		var is_enemy: bool = u["uid"] == battle.enemy["uid"]
-		ui_queue.add_child(_turn_tile(u, i == 0, is_enemy))
+		var uid: int = int(u["uid"])
+		var occ: int = int(seen.get(uid, 0)); seen[uid] = occ + 1
+		var key := "%d_%d" % [uid, occ]
+		var is_enemy: bool = uid == int(battle.enemy["uid"])
+		var row := _turn_tile(u, i == 0, is_enemy)
+		var ty := float(i * QROW_H)
+		ui_queue.add_child(row)
+		newpos[key] = ty
+		if animate:
+			var is_new := not _queue_prev.has(key)
+			var from_y: float = float(fc.size() * QROW_H + QROW_H) if is_new else float(_queue_prev[key])
+			row.position = Vector2(0, from_y)
+			row.modulate.a = 0.0 if is_new else 1.0
+			var tw := create_tween()
+			tw.set_parallel(true)
+			tw.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+			tw.tween_property(row, "position:y", ty, 0.30)
+			tw.tween_property(row, "modulate:a", 1.0, 0.24)
+		else:
+			row.position = Vector2(0, ty)
+	_queue_prev = newpos
 
 func _turn_tile(u: Dictionary, active: bool, is_enemy: bool) -> Control:
 	var cid: String = u["cid"]
-	var size: int = 50 if active else 38
+	var psize: int = 42 if active else 34
 	var hi := Color("#e7c659") if active else (Color("#e0683b") if is_enemy else Color("#9ed27f"))
-	# baris: [portrait] [nama / subjudul]
-	var tile := HBoxContainer.new()
-	tile.add_theme_constant_override("separation", 9)
-	tile.custom_minimum_size = Vector2(184, size)
-	# bingkai portrait (kotak membulat, warna tipe + sprite)
+	var row := Control.new()
+	row.size = Vector2(QW, QROW_H)
+	row.custom_minimum_size = row.size
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# latar gradasi (pekat kiri -> transparan kanan), warna sesuai status
+	var bg := TextureRect.new()
+	bg.texture = _grad
+	bg.position = Vector2.ZERO; bg.size = row.size
+	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	bg.stretch_mode = TextureRect.STRETCH_SCALE
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if active:
+		bg.modulate = Color(0.22, 0.17, 0.03, 0.92)
+	elif is_enemy:
+		bg.modulate = Color(0.20, 0.05, 0.04, 0.86)
+	else:
+		bg.modulate = Color(0.05, 0.10, 0.08, 0.84)
+	row.add_child(bg)
+	# garis aksen di tepi kiri
+	var acc := ColorRect.new()
+	acc.color = hi
+	acc.position = Vector2.ZERO; acc.size = Vector2(4 if active else 3, QROW_H)
+	acc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(acc)
+	# bingkai portrait (close-up muka)
 	var p := Panel.new()
-	p.custom_minimum_size = Vector2(size, size)
+	p.position = Vector2(12, (QROW_H - psize) * 0.5)
+	p.size = Vector2(psize, psize)
+	p.clip_contents = true
 	var sb := StyleBoxFlat.new()
 	var tcol := Color(Core.db.colors.get(Core.db.species[cid]["types"][0], "#999999"))
-	tcol.a = 0.92
 	sb.bg_color = tcol
-	sb.set_corner_radius_all(10)
+	sb.set_corner_radius_all(8)
 	sb.set_border_width_all(3 if active else 2)
 	sb.border_color = hi
 	p.add_theme_stylebox_override("panel", sb)
-	var tex: Texture2D = Core.db.sprite_for(cid)
-	if tex != null:
+	var ftex := _face_tex(cid)
+	if ftex != null:
 		var tr := TextureRect.new()
-		tr.texture = tex
+		tr.texture = ftex
 		tr.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tr.stretch_mode = TextureRect.STRETCH_SCALE  # region sudah kotak -> isi penuh tanpa distorsi
 		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		p.add_child(tr)
-	tile.add_child(p)
+	row.add_child(p)
 	# nama + subjudul
-	var vb := VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 0)
-	vb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var ncol := Color("#e7c659") if active else (Color("#f0b6a0") if is_enemy else Color("#eef3e9"))
-	vb.add_child(_lbl(String(u["name"]), 15 if active else 13, ncol))
+	var nx := 12 + psize + 11
+	var ncol := Color("#ffe9a8") if active else (Color("#f0b6a0") if is_enemy else Color("#eef3e9"))
+	var nm := _lbl(String(u["name"]), 15 if active else 13, ncol)
+	nm.position = Vector2(nx, QROW_H * 0.5 - (15 if active else 14))
+	nm.add_theme_constant_override("outline_size", 4)
+	nm.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7))
+	row.add_child(nm)
 	var sub := "▶ Sekarang" if active else ("Lawan" if is_enemy else "Lv%d" % int(u["level"]))
-	vb.add_child(_lbl(sub, 10, Color("#a7c0ad")))
-	tile.add_child(vb)
-	return tile
+	var scol := Color("#ffd36b") if active else Color("#a7c0ad")
+	var sl := _lbl(sub, 10, scol)
+	sl.position = Vector2(nx, QROW_H * 0.5 + 2)
+	row.add_child(sl)
+	return row
 
 func _build_cmd() -> void:
 	for c in ui_cmd.get_children():
