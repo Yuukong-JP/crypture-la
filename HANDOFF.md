@@ -53,8 +53,8 @@ sprite 2D billboard di dunia 3D miring. Ada GDD lengkap (docx) milik owner; inti
 ## 5. Status art (sprite asli owner)
 Sudah ada Crypture: **Verduck** (front+back), **Pyruff** (front=rubah api + back), **Ripplet** (front=makhluk air + back), **Mosswhim** (front).
 Masih placeholder: **Cappin, Glimmoth, Pebblion, Gustling, Brookling**, Eldergrove (semua front), + back utk yg belum.
-MC/Seeker overworld: **4 arah + animasi jalan** di `assets/world/seeker*.png`. Idle: `seeker{,_back,_left,_right}.png`; jalan: `seeker_<dir>_w0..2.png` (3 frame/arah). Billboard ganti tekstur via `_face_move` (arah) + `_anim_sprite` (siklus jalan saat bergerak, idle saat diam). Diekstrak dari sprite sheet owner (baris0=idle 4 arah, baris1-4=jalan depan/belakang/kiri/kanan).
-Catatan kebersihan: keying latar JPEG cuma 2 warna checkerboard spesifik + **erosi tepi 1-2px + despeckle** (lihat skrip di histori) agar tak ada halo putih. Sprite Crypture asli (verduck/pyruff/ripplet/mosswhim + back) sudah di-defringe ulang.
+MC/Seeker overworld: **4 arah idle** di `assets/world/seeker{,_back,_left,_right}.png`. Billboard ganti tekstur via `_face_move` (arah). Gerak jalan diwujudkan lewat **bob prosedural** (abs-sin "melangkah") di `_anim_sprite`/`_animate*` — BUKAN frame kaki. Owner berencana bikin frame jalan manual; saat tersedia, tinggal pasang `seeker_<dir>_w0..N.png` & aktifkan siklus frame (pernah ada, di-revert karena frame sheet auto kurang mulus).
+Catatan kebersihan: keying latar JPEG cuma 2 warna checkerboard spesifik + **erosi tepi 1-2px + despeckle** agar tak ada halo putih. Sprite Crypture asli (verduck/pyruff/ripplet/mosswhim + back) sudah di-defringe ulang.
 
 **Cara pasang sprite dari owner:** owner kirim gambar di chat (sering webp/jpeg dengan latar kotak-kotak yang ter-*bake*).
 File upload TIDAK ada di disk — gambar ter-embed base64 di transkrip `~/.claude/projects/<...>/<session>.jsonl`

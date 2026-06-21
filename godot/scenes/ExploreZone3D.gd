@@ -14,7 +14,6 @@ const NEAR := 1.35
 
 var player: Sprite3D
 var _idle := {}            # tekstur idle per arah
-var _walk := {}            # array tekstur jalan per arah
 var _facing := "front"
 var _anim_t := 0.0
 var _moving := false
@@ -127,8 +126,6 @@ func _load_seeker() -> void:
 		"front": load(base + "seeker.png"), "back": load(base + "seeker_back.png"),
 		"left": load(base + "seeker_left.png"), "right": load(base + "seeker_right.png"),
 	}
-	for d in ["front", "back", "left", "right"]:
-		_walk[d] = [load("%sseeker_%s_w0.png" % [base, d]), load("%sseeker_%s_w1.png" % [base, d]), load("%sseeker_%s_w2.png" % [base, d])]
 
 # Arah hadap sesuai gerak (relatif kamera: -z=jauh/belakang, +z=dekat/depan).
 func _face_move(d: Vector3) -> void:
@@ -137,16 +134,9 @@ func _face_move(d: Vector3) -> void:
 	else:
 		_facing = "back" if d.z < 0 else "front"
 
-# Animasi: siklus 3 frame jalan saat bergerak, idle saat diam.
-func _anim_sprite(delta: float) -> void:
-	var tex: Texture2D
-	if _moving:
-		_anim_t += delta
-		var frames: Array = _walk[_facing]
-		tex = frames[int(_anim_t * 8.0) % frames.size()]
-	else:
-		_anim_t = 0.0
-		tex = _idle[_facing]
+# Sprite directional idle; gerak "jalan" diwujudkan lewat bob prosedural (lihat _animate_world).
+func _anim_sprite(_delta: float) -> void:
+	var tex: Texture2D = _idle[_facing]
 	if player.texture != tex:
 		player.texture = tex
 
@@ -212,8 +202,13 @@ func _animate_world(delta: float) -> void:
 		var bob := sin(t * 2.2 + c["phase"]) * 0.09
 		n.position = Vector3(pos2.x, c["base_y"] + bob, pos2.y)
 		c["pos"] = Vector3(pos2.x, 0, pos2.y)
-	# pemain ikut bergoyang halus
-	player.position.y = _player_base_y + sin(t * 3.0) * 0.05
+	# pemain: bob "melangkah" (dobel/abs-sin) saat jalan; ayunan idle halus saat diam
+	if _moving:
+		_anim_t += delta
+		player.position.y = _player_base_y + absf(sin(_anim_t * 9.0)) * 0.13
+	else:
+		_anim_t = 0.0
+		player.position.y = _player_base_y + sin(t * 3.0) * 0.05
 
 func _check_proximity() -> void:
 	var pp := Vector2(player.position.x, player.position.z)
