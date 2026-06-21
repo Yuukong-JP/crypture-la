@@ -10,6 +10,8 @@ const MOVE_SPEED := 5.5
 const NEAR := 1.7
 
 var player: Sprite3D
+var _ptex := {}            # tekstur arah seeker (front/back/left/right)
+var _facing := "front"
 var cam: Camera3D
 var stations: Array = []     # {kind, name, pos, label}
 var _near = null             # stasiun terdekat dalam jangkauan
@@ -80,7 +82,13 @@ func _build_town() -> void:
 		var npc := _billboard(seeker_tex, item[0], 1.9)
 		npc.modulate = item[1]
 
-	player = _billboard(load("res://assets/world/seeker.png"), Vector3(0, 0, 6), 2.0)
+	_ptex = {
+		"front": load("res://assets/world/seeker.png"),
+		"back": load("res://assets/world/seeker_back.png"),
+		"left": load("res://assets/world/seeker_left.png"),
+		"right": load("res://assets/world/seeker_right.png"),
+	}
+	player = _billboard(_ptex["front"], Vector3(0, 0, 6), 2.0)
 	_player_base_y = player.position.y
 	_state_player = player.position
 
@@ -187,6 +195,17 @@ func _update_cam() -> void:
 	cam.position = p + Vector3(1.5, 6.8, 8.0)
 	cam.look_at(p + Vector3(0, 0.6, 0), Vector3.UP)
 
+# Ganti sprite seeker sesuai arah jalan (relatif kamera: -z=jauh/belakang, +z=dekat/depan).
+func _face_move(d: Vector3) -> void:
+	var key := ""
+	if absf(d.x) > absf(d.z):
+		key = "left" if d.x < 0 else "right"
+	else:
+		key = "back" if d.z < 0 else "front"
+	if key != _facing and _ptex.has(key):
+		_facing = key
+		player.texture = _ptex[key]
+
 # ---------------- HUD ----------------
 func _build_hud() -> void:
 	var layer := CanvasLayer.new(); add_child(layer)
@@ -228,6 +247,7 @@ func _process(delta: float) -> void:
 		np.x = clampf(np.x, -12, 12); np.z = clampf(np.z, -7.5, 8)
 		player.position = Vector3(np.x, _player_base_y, np.z)
 		_state_player = player.position
+		_face_move(dir)
 		_update_cam()
 	_check_near()
 	_animate(delta)

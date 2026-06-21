@@ -51,8 +51,9 @@ sprite 2D billboard di dunia 3D miring. Ada GDD lengkap (docx) milik owner; inti
 - Aturan emas GDD: jangan tambah konten/skala sebelum slice terbukti fun.
 
 ## 5. Status art (sprite asli owner)
-Sudah ada: **Verduck** (front+back), **Pyruff** (front=rubah api + back), **Ripplet** (front=makhluk air + back), **Mosswhim** (front).
+Sudah ada Crypture: **Verduck** (front+back), **Pyruff** (front=rubah api + back), **Ripplet** (front=makhluk air + back), **Mosswhim** (front).
 Masih placeholder: **Cappin, Glimmoth, Pebblion, Gustling, Brookling**, Eldergrove (semua front), + back utk yg belum.
+MC/Seeker overworld: **4 arah** (front/back/left/right) di `assets/world/seeker*.png` — billboard ganti tekstur sesuai arah jalan (`_face_move`). Diekstrak dari sprite sheet owner (baris atas = 4 arah idle). Sisa baris sheet = frame jalan (belum dipakai; bisa utk walk-cycle nanti).
 
 **Cara pasang sprite dari owner:** owner kirim gambar di chat (sering webp/jpeg dengan latar kotak-kotak yang ter-*bake*).
 File upload TIDAK ada di disk — gambar ter-embed base64 di transkrip `~/.claude/projects/<...>/<session>.jsonl`
