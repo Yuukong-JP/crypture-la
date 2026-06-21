@@ -17,7 +17,7 @@ var battle
 var cam: Camera3D
 var spr := {}            # instance uid -> Sprite3D
 # UI
-var ui_queue: HBoxContainer   # bar urutan giliran (ikon Crypture)
+var ui_queue: VBoxContainer   # bar urutan giliran vertikal di kiri (portrait + nama)
 var ui_party: VBoxContainer
 var ui_cmd: VBoxContainer
 var ui_log: RichTextLabel
@@ -159,25 +159,28 @@ func _build_ui() -> void:
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(col)
 
-	# baris atas: [kondisi lawan tengah] ... [log kanan]
+	# baris atas: [...spacer...] [log kanan]  (turn queue dipindah ke panel kiri vertikal)
 	var top := HBoxContainer.new(); top.add_theme_constant_override("separation", 10)
 	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(top)
-	top.add_child(_spacer())
-	var qp := _sb_panel(); var qv := VBoxContainer.new(); qp.add_child(qv)
-	qv.add_theme_constant_override("separation", 4)
-	var qlab := _lbl("Urutan Giliran", 11, Color("#a7c0ad")); qlab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	qv.add_child(qlab)
-	ui_queue = HBoxContainer.new(); ui_queue.add_theme_constant_override("separation", 6)
-	ui_queue.alignment = BoxContainer.ALIGNMENT_CENTER
-	qv.add_child(ui_queue)
-	top.add_child(qp)
 	top.add_child(_spacer())
 	var lp := _sb_panel()
 	ui_log = RichTextLabel.new(); ui_log.fit_content = true
 	ui_log.custom_minimum_size = Vector2(290, 92)
 	ui_log.add_theme_font_size_override("normal_font_size", 12)
 	lp.add_child(ui_log); top.add_child(lp)
+
+	# bar Urutan Giliran VERTIKAL di KIRI (portrait + nama). Kita di kiri, jadi antrian di kiri.
+	var qp := _sb_panel()
+	qp.position = Vector2(12, 56)
+	qp.custom_minimum_size = Vector2(196, 0)
+	var qv := VBoxContainer.new(); qv.add_theme_constant_override("separation", 6)
+	qp.add_child(qv)
+	var qlab := _lbl("Urutan Giliran", 12, Color("#a7c0ad")); qlab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	qv.add_child(qlab)
+	ui_queue = VBoxContainer.new(); ui_queue.add_theme_constant_override("separation", 5)
+	qv.add_child(ui_queue)
+	root.add_child(qp)
 
 	col.add_child(_spacer_v())  # dorong baris bawah ke bawah
 
@@ -248,28 +251,36 @@ func _refresh() -> void:
 
 	_build_cmd()
 
-# Bar urutan giliran: ikon Crypture berurutan (kiri = giliran terdekat).
+# Bar urutan giliran (vertikal, kiri): tiap baris = portrait + nama. Atas = giliran terdekat.
 func _build_queue() -> void:
 	if ui_queue == null:
 		return
 	for c in ui_queue.get_children():
 		c.queue_free()
-	var fc: Array = battle.turn_forecast(7)
+	var fc: Array = battle.turn_forecast(6)
 	for i in range(fc.size()):
 		var u = fc[i]
 		var is_enemy: bool = u["uid"] == battle.enemy["uid"]
-		ui_queue.add_child(_turn_icon(u["cid"], 52 if i == 0 else 38, i == 0, is_enemy))
+		ui_queue.add_child(_turn_tile(u, i == 0, is_enemy))
 
-func _turn_icon(cid: String, size: int, active: bool, is_enemy: bool) -> Control:
+func _turn_tile(u: Dictionary, active: bool, is_enemy: bool) -> Control:
+	var cid: String = u["cid"]
+	var size: int = 50 if active else 38
+	var hi := Color("#e7c659") if active else (Color("#e0683b") if is_enemy else Color("#9ed27f"))
+	# baris: [portrait] [nama / subjudul]
+	var tile := HBoxContainer.new()
+	tile.add_theme_constant_override("separation", 9)
+	tile.custom_minimum_size = Vector2(184, size)
+	# bingkai portrait (kotak membulat, warna tipe + sprite)
 	var p := Panel.new()
 	p.custom_minimum_size = Vector2(size, size)
 	var sb := StyleBoxFlat.new()
 	var tcol := Color(Core.db.colors.get(Core.db.species[cid]["types"][0], "#999999"))
-	tcol.a = 0.9
+	tcol.a = 0.92
 	sb.bg_color = tcol
-	sb.set_corner_radius_all(int(size / 2))
+	sb.set_corner_radius_all(10)
 	sb.set_border_width_all(3 if active else 2)
-	sb.border_color = Color("#e7c659") if active else (Color("#e0683b") if is_enemy else Color("#9ed27f"))
+	sb.border_color = hi
 	p.add_theme_stylebox_override("panel", sb)
 	var tex: Texture2D = Core.db.sprite_for(cid)
 	if tex != null:
@@ -280,7 +291,19 @@ func _turn_icon(cid: String, size: int, active: bool, is_enemy: bool) -> Control
 		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		p.add_child(tr)
-	return p
+	tile.add_child(p)
+	# nama + subjudul
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 0)
+	vb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var ncol := Color("#e7c659") if active else (Color("#f0b6a0") if is_enemy else Color("#eef3e9"))
+	vb.add_child(_lbl(String(u["name"]), 15 if active else 13, ncol))
+	var sub := "▶ Sekarang" if active else ("Lawan" if is_enemy else "Lv%d" % int(u["level"]))
+	vb.add_child(_lbl(sub, 10, Color("#a7c0ad")))
+	tile.add_child(vb)
+	return tile
 
 func _build_cmd() -> void:
 	for c in ui_cmd.get_children():
