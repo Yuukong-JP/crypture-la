@@ -13,8 +13,11 @@ const MOVE_SPEED := 5.5
 const NEAR := 1.35
 
 var player: Sprite3D
-var _ptex := {}            # tekstur arah seeker (front/back/left/right)
+var _idle := {}            # tekstur idle per arah
+var _walk := {}            # array tekstur jalan per arah
 var _facing := "front"
+var _anim_t := 0.0
+var _moving := false
 var cam: Camera3D
 var creatures: Array = []   # {sid, cid, node, alive, behavior, pos}
 var lores: Array = []       # {lid, for, type, text, name, node, used, pos}
@@ -86,13 +89,8 @@ func _build_world() -> void:
 	ex.font_size = 64; ex.outline_size = 16; ex.modulate = Color("#e7c659")
 	ex.position = exit_pos + Vector3(0, 1.4, 0); add_child(ex)
 
-	_ptex = {
-		"front": load("res://assets/world/seeker.png"),
-		"back": load("res://assets/world/seeker_back.png"),
-		"left": load("res://assets/world/seeker_left.png"),
-		"right": load("res://assets/world/seeker_right.png"),
-	}
-	player = _billboard(_ptex["front"], _grid_to_world(7, 9), 2.0, true)
+	_load_seeker()
+	player = _billboard(_idle["front"], _grid_to_world(7, 9), 2.0, true)
 	_player_base_y = player.position.y
 	_state_player = player.position
 
@@ -123,16 +121,34 @@ func _update_cam() -> void:
 	cam.position = p + Vector3(1.5, 6.8, 8.0)   # 3/4 dari belakang-samping
 	cam.look_at(p + Vector3(0, 0.6, 0), Vector3.UP)
 
-# Ganti sprite seeker sesuai arah jalan (relatif kamera: -z=jauh/belakang, +z=dekat/depan).
+func _load_seeker() -> void:
+	var base := "res://assets/world/"
+	_idle = {
+		"front": load(base + "seeker.png"), "back": load(base + "seeker_back.png"),
+		"left": load(base + "seeker_left.png"), "right": load(base + "seeker_right.png"),
+	}
+	for d in ["front", "back", "left", "right"]:
+		_walk[d] = [load("%sseeker_%s_w0.png" % [base, d]), load("%sseeker_%s_w1.png" % [base, d]), load("%sseeker_%s_w2.png" % [base, d])]
+
+# Arah hadap sesuai gerak (relatif kamera: -z=jauh/belakang, +z=dekat/depan).
 func _face_move(d: Vector3) -> void:
-	var key := ""
 	if absf(d.x) > absf(d.z):
-		key = "left" if d.x < 0 else "right"
+		_facing = "left" if d.x < 0 else "right"
 	else:
-		key = "back" if d.z < 0 else "front"
-	if key != _facing and _ptex.has(key):
-		_facing = key
-		player.texture = _ptex[key]
+		_facing = "back" if d.z < 0 else "front"
+
+# Animasi: siklus 3 frame jalan saat bergerak, idle saat diam.
+func _anim_sprite(delta: float) -> void:
+	var tex: Texture2D
+	if _moving:
+		_anim_t += delta
+		var frames: Array = _walk[_facing]
+		tex = frames[int(_anim_t * 8.0) % frames.size()]
+	else:
+		_anim_t = 0.0
+		tex = _idle[_facing]
+	if player.texture != tex:
+		player.texture = tex
 
 func _build_hud() -> void:
 	var layer := CanvasLayer.new(); add_child(layer)
@@ -159,7 +175,8 @@ func _process(delta: float) -> void:
 	if Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN): dir.z += 1
 	if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT): dir.x -= 1
 	if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT): dir.x += 1
-	if dir != Vector3.ZERO:
+	_moving = dir != Vector3.ZERO
+	if _moving:
 		var np: Vector3 = player.position + dir.normalized() * MOVE_SPEED * delta
 		np.x = clampf(np.x, -16, 16); np.z = clampf(np.z, -12, 12)
 		player.position = Vector3(np.x, _player_base_y, np.z)
@@ -167,6 +184,7 @@ func _process(delta: float) -> void:
 		_face_move(dir)
 		_update_cam()
 		_check_proximity()
+	_anim_sprite(delta)
 	_animate_world(delta)
 
 # Goyang-idle + perilaku liar (wander/flee) — bikin dunia terasa hidup.
